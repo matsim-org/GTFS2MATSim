@@ -2,6 +2,7 @@ package gtfs;
 
 
 import com.conveyal.gtfs.GTFSFeed;
+import com.conveyal.gtfs.model.CalendarDate;
 import com.conveyal.gtfs.model.Route;
 import com.conveyal.gtfs.model.Service;
 import com.conveyal.gtfs.model.Stop;
@@ -10,6 +11,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 //
 //import java.io.File;
 import java.util.ArrayList;
@@ -39,8 +41,8 @@ import org.matsim.core.utils.geometry.CoordinateTransformation;
 //import org.matsim.core.utils.misc.Time;
 //import org.matsim.pt.transitSchedule.api.Departure;
 import org.matsim.pt.transitSchedule.api.TransitLine;
-//import org.matsim.pt.transitSchedule.api.TransitRoute;
-//import org.matsim.pt.transitSchedule.api.TransitRouteStop;
+import org.matsim.pt.transitSchedule.api.TransitRoute;
+import org.matsim.pt.transitSchedule.api.TransitRouteStop;
 import org.matsim.pt.transitSchedule.api.TransitSchedule;
 import org.matsim.pt.transitSchedule.api.TransitStopFacility;
 //import org.matsim.vehicles.Vehicle;
@@ -58,15 +60,15 @@ public class GtfsConverter {
 	private TransitSchedule ts;
 //	private Map<String,Integer> vehicleIdsAndTypes = new HashMap<String,Integer>();
 	private Map<Id<TransitLine>,Integer> lineToVehicleType = new HashMap<>();
-//	private Map<Id<Trip>,Id<TransitRoute>> matsimRouteIdToGtfsTripIdAssignments = new HashMap<>();
-//	private boolean createShapedNetwork = false;
+	private Map<Id<Trip>,Id<TransitRoute>> matsimRouteIdToGtfsTripIdAssignments = new HashMap<>();
+	private boolean createShapedNetwork = false;
 //
 	private LocalDate date = LocalDate.now();
 //
 //
 //	// Fields for shaped Network
 //	// (TripId,ShapeId)
-//	private Map<String,String> shapeIdToTripIdAssignments = new HashMap<String,String>();
+	private Map<String,String> shapeIdToTripIdAssignments = new HashMap<String,String>();
 //	// (LinkId,(TripId,FromShapeDist,ToShapeDist))
 //	private Map<Id<Link>,String[]> shapedLinkIds = new HashMap<>();
 //	// If there is no shape_dist_traveled field, try to identify the stations by its coordinates
@@ -152,27 +154,25 @@ public class GtfsConverter {
 //
 //
 //		// Get the used service Id for the choosen weekday and date
-//		this.feed.services.get(null).
 		List<String> usedServiceIds = new ArrayList<String>();
 		usedServiceIds.addAll(this.getUsedServiceIds(this.feed.services));
 		
-//		if((new File(calendarDatesFilename)).exists()){
-//			System.out.println("Reading calendar_dates.txt");
-//			for(String serviceId: this.getUsedServiceIdsForSpecialDates(calendarDatesSource)){
-//				if(serviceId.charAt(0) == '+'){
-//					usedServiceIds.add(serviceId.substring(1));
-//				}else{
-//					if(usedServiceIds.contains(serviceId.substring(1))){
-//						usedServiceIds.remove(serviceId.substring(1));
-//					}
-//				}
-//			}
-//		}		
-//		System.out.println("Reading of ServiceIds succesfull: " + usedServiceIds);
-//
-//		// Get the TripIds, which are available for the serviceIds
-//		List<Id<Trip>> usedTripIds = this.getUsedTripIds(tripSource, usedServiceIds);
-//		System.out.println("Reading of TripIds succesfull: " + usedTripIds);
+		
+		for(String serviceId: this.getUsedServiceIdsForSpecialDates(this.feed.services)){
+			if(serviceId.charAt(0) == '+'){
+				usedServiceIds.add(serviceId.substring(1));
+			}else{
+				if(usedServiceIds.contains(serviceId.substring(1))){
+					usedServiceIds.remove(serviceId.substring(1));
+				}
+			}
+		}
+				
+		System.out.println("Reading of ServiceIds succesfull: " + usedServiceIds);
+
+		// Get the TripIds, which are available for the serviceIds
+		List<Id<Trip>> usedTripIds = this.getUsedTripIds(this.feed.trips, usedServiceIds);
+		System.out.println("Reading of TripIds succesfull: " + usedTripIds);
 //
 //		// Create the Network
 //		System.out.println("Creating Network");
@@ -207,41 +207,30 @@ public class GtfsConverter {
 //		}
 //		System.out.println("Conversion successfull");
 	}
-//
-//	private List<Id<Trip>> getUsedTripIds(GtfsSource tripsSource, List<String> usedServiceIds) {
-//		List<Id<Trip>> usedTripIds = new ArrayList<>();
-//		int serviceIdIndex = tripsSource.getContentIndex("service_id");
-//		int tripIdIndex = tripsSource.getContentIndex("trip_id");
-//		int shapeIdIndex = tripsSource.getContentIndex("shape_id");
-//		int headsignIndex = tripsSource.getContentIndex("trip_headsign");
-//		for (String[] entries : tripsSource.getContent()) {
-//			if (usedServiceIds.contains(entries[serviceIdIndex])) {
-//				usedTripIds.add(Id.create(entries[tripIdIndex], Trip.class));
-//			}
-//			if (this.createShapedNetwork) {
-//				if (shapeIdIndex > 0) {
-//					String shapeId = entries[shapeIdIndex];
-//					this.shapeIdToTripIdAssignments.put(entries[tripIdIndex],
-//							shapeId);
-//				} else {
-//					System.out
-//					.println("WARNING: Couldn't find shape_id header in trips.txt. Deactivating creation of shaped network");
-//					this.createShapedNetwork = false;
-//				}
-//			}
-//			if(headsignIndex>0){
-//				String headsign = entries[headsignIndex];
-//				String oldId = entries[tripIdIndex];
-//				oldId = oldId.replace("_", "-");
-//				headsign = headsign.replace("_", "-");
-//				this.matsimRouteIdToGtfsTripIdAssignments.put(Id.create(entries[tripIdIndex], Trip.class), Id.create(oldId + "_" + headsign, TransitRoute.class));
-//			}else{
-//				this.matsimRouteIdToGtfsTripIdAssignments.put(Id.create(entries[tripIdIndex], Trip.class), Id.create(entries[tripIdIndex], TransitRoute.class));
-//			} 							
-//		}
-//		return usedTripIds;
-//	}
-//
+
+	private List<Id<Trip>> getUsedTripIds(Map<String, com.conveyal.gtfs.model.Trip> trips, List<String> usedServiceIds) {
+		List<Id<Trip>> usedTripIds = new ArrayList<>();
+		for (com.conveyal.gtfs.model.Trip trip: trips.values()) {
+			if (usedServiceIds.contains(trip.service.service_id)) {
+				usedTripIds.add(Id.create(trip.trip_id, Trip.class));
+			}
+			if (trip.shape_id != null) {
+				String shapeId = trip.shape_id;
+				this.shapeIdToTripIdAssignments.put(trip.trip_id, shapeId);
+			}
+			if(trip.trip_headsign!=null){
+				String headsign = trip.trip_headsign;
+				String oldId = trip.trip_id;
+				oldId = oldId.replace("_", "-");
+				headsign = headsign.replace("_", "-");
+				this.matsimRouteIdToGtfsTripIdAssignments.put(Id.create(trip.trip_id, Trip.class), Id.create(oldId + "_" + headsign, TransitRoute.class));
+			}else{
+				this.matsimRouteIdToGtfsTripIdAssignments.put(Id.create(trip.trip_id, Trip.class), Id.create(trip.trip_id, TransitRoute.class));
+			} 							
+		}
+		return usedTripIds;
+	}
+
 	private Map<Id<Trip>, Id<TransitLine>> getMatsimLineIds(Map<String, Route> routes) {
 		Map<Id<Trip>, Id<TransitLine>> routeNames = new HashMap<>();
 		for(Route route: routes.values()){
@@ -286,30 +275,29 @@ public class GtfsConverter {
 		}
 		return serviceIds;
 	}
-//
-//	private List<String> getUsedServiceIdsForSpecialDates(GtfsSource calendarDatesSource){
-//		List<String> serviceIds = new ArrayList<String>();
-//		int serviceIdIndex = calendarDatesSource.getContentIndex("service_id");
-//		int dateIndex = calendarDatesSource.getContentIndex("date");
-//		int exceptionTypeIndex = calendarDatesSource.getContentIndex("exception_type");
-//		for (String[] entries : calendarDatesSource.getContent()) {
-//			String serviceId = entries[serviceIdIndex];
-//			long exceptionDate = Long.parseLong(entries[dateIndex].trim());
-//			int exceptionType = Integer.parseInt(entries[exceptionTypeIndex].trim());
-//			if (this.date == 0) {
-//				this.date = exceptionDate;
-//				System.out.println("Used Date for active schedules: " + this.date + ". If you want to choose another date, please specify it, before running the converter");
-//			}
-//			if (exceptionDate == this.date) {
-//				if (exceptionType == 1) {
-//					serviceIds.add("+" + serviceId);
-//				} else {
-//					serviceIds.add("-" + serviceId);
-//				}
-//			}
-//		}
-//		return serviceIds;
-//	}
+
+	private List<String> getUsedServiceIdsForSpecialDates(Map<String, Service> services){
+	    	System.out.println("Used Date for active schedules: " + this.date + ". If you want to choose another date, please specify it, before running the converter");
+		List<String> serviceIds = new ArrayList<String>();
+		for (Service service: services.values()) {
+		    for(CalendarDate calendarDate: service.calendar_dates.values()) {
+			String serviceId = service.service_id;
+			LocalDate exceptionDate = calendarDate.date;
+			int exceptionType = calendarDate.exception_type;
+			if (this.date != null) {
+        			if (exceptionDate.equals(this.date)) {
+        				if (exceptionType == 1) {
+        					serviceIds.add("+" + serviceId);
+        				} else {
+        					serviceIds.add("-" + serviceId);
+        				}
+        			}
+			}
+		    }
+			
+		}
+		return serviceIds;
+	}
 //
 //	private void convertFrequencies(GtfsSource frequenciesSource, Map<Id<Trip>, Id<TransitLine>> routeToTripAssignments, List<Id<Trip>> usedTripIds) {
 //		int tripIdIndex = frequenciesSource.getContentIndex("trip_id");
