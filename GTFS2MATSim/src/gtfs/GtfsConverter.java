@@ -2,22 +2,29 @@ package gtfs;
 
 
 import com.conveyal.gtfs.GTFSFeed;
+import com.conveyal.gtfs.model.Route;
+import com.conveyal.gtfs.model.Service;
+import com.conveyal.gtfs.model.Stop;
 
+import java.util.Map;
+import java.util.Map.Entry;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 //
 //import java.io.File;
-//import java.util.ArrayList;
-//import java.util.Calendar;
-//import java.util.GregorianCalendar;
-//import java.util.HashMap;
-//import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.HashSet;
 //import java.util.Iterator;
 //import java.util.LinkedList;
-//import java.util.List;
+import java.util.List;
 //import java.util.Map;
 //import java.util.Set;
 //
-//import org.matsim.api.core.v01.Coord;
-//import org.matsim.api.core.v01.Id;
+import org.matsim.api.core.v01.Coord;
+import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 //import org.matsim.api.core.v01.TransportMode;
 //import org.matsim.api.core.v01.network.Link;
@@ -31,11 +38,11 @@ import org.matsim.core.scenario.MutableScenario;
 import org.matsim.core.utils.geometry.CoordinateTransformation;
 //import org.matsim.core.utils.misc.Time;
 //import org.matsim.pt.transitSchedule.api.Departure;
-//import org.matsim.pt.transitSchedule.api.TransitLine;
+import org.matsim.pt.transitSchedule.api.TransitLine;
 //import org.matsim.pt.transitSchedule.api.TransitRoute;
 //import org.matsim.pt.transitSchedule.api.TransitRouteStop;
-//import org.matsim.pt.transitSchedule.api.TransitSchedule;
-//import org.matsim.pt.transitSchedule.api.TransitStopFacility;
+import org.matsim.pt.transitSchedule.api.TransitSchedule;
+import org.matsim.pt.transitSchedule.api.TransitStopFacility;
 //import org.matsim.vehicles.Vehicle;
 //import org.matsim.vehicles.VehicleCapacity;
 //import org.matsim.vehicles.VehicleType;
@@ -48,12 +55,13 @@ public class GtfsConverter {
     	private GTFSFeed feed;
 	private CoordinateTransformation transform;
 	private MutableScenario scenario;
+	private TransitSchedule ts;
 //	private Map<String,Integer> vehicleIdsAndTypes = new HashMap<String,Integer>();
-//	private Map<Id<TransitLine>,Integer> lineToVehicleType = new HashMap<>();
+	private Map<Id<TransitLine>,Integer> lineToVehicleType = new HashMap<>();
 //	private Map<Id<Trip>,Id<TransitRoute>> matsimRouteIdToGtfsTripIdAssignments = new HashMap<>();
 //	private boolean createShapedNetwork = false;
 //
-//	private long date = 0;
+	private LocalDate date = LocalDate.now();
 //
 //
 //	// Fields for shaped Network
@@ -71,16 +79,15 @@ public class GtfsConverter {
 //
 //
 //
-//	private TransitSchedule ts;
 //	
 	public GtfsConverter(GTFSFeed feed, Scenario scenario, CoordinateTransformation transform) {
 		this.feed = feed;
 		this.transform = transform;
 		this.scenario = (MutableScenario) scenario;
-//	}
-//
-//	public void setDate(long date) {
-//		this.date = date;
+	}
+
+	public void setDate(LocalDate date) {
+		this.date = date;
 	}
 //
 //	public void setCreateShapedNetwork(boolean createShapedNetwork) {
@@ -129,27 +136,26 @@ public class GtfsConverter {
 //			}
 //		}
 //
-//		this.ts = scenario.getTransitSchedule();
+		this.ts = scenario.getTransitSchedule();
 //
 //		// Put all stops in the Schedule
-//		this.convertStops(stopsSource);
+		this.convertStops(this.feed.stops);
 //
 //		// Get the Routenames and the assigned Trips
-//		Map<Id<Trip>, Id<TransitLine>> gtfsRouteToMatsimLineID = getMatsimLineIds(routesSource);
+		Map<Id<Trip>, Id<TransitLine>> gtfsRouteToMatsimLineID = getMatsimLineIds(this.feed.routes);
 //
-//		Map<Id<Trip>,Id<TransitLine>> tripToRoute = getTripToRouteMap(tripSource,gtfsRouteToMatsimLineID);
+		Map<Id<Trip>,Id<TransitLine>> tripToRoute = getTripToRouteMap(this.feed.trips,gtfsRouteToMatsimLineID);
 //
 //		// Create Transitlines
-//		this.createTransitLines(gtfsRouteToMatsimLineID);
+		this.createTransitLines(gtfsRouteToMatsimLineID);
 //
 //
 //
 //		// Get the used service Id for the choosen weekday and date
-//		List<String> usedServiceIds = new ArrayList<String>();
-//		if((new File(calendarFilename)).exists()){
-//			System.out.println("Reading calendar.txt");
-//			usedServiceIds.addAll(this.getUsedServiceIds(calendarSource));
-//		}
+//		this.feed.services.get(null).
+		List<String> usedServiceIds = new ArrayList<String>();
+		usedServiceIds.addAll(this.getUsedServiceIds(this.feed.services));
+		
 //		if((new File(calendarDatesFilename)).exists()){
 //			System.out.println("Reading calendar_dates.txt");
 //			for(String serviceId: this.getUsedServiceIdsForSpecialDates(calendarDatesSource)){
@@ -236,67 +242,50 @@ public class GtfsConverter {
 //		return usedTripIds;
 //	}
 //
-//	private Map<Id<Trip>, Id<TransitLine>> getMatsimLineIds(GtfsSource routesSource) {
-//		Map<Id<Trip>, Id<TransitLine>> routeNames = new HashMap<>();
-//		int routeIdIndex = routesSource.getContentIndex("route_id");
-//		int routeShortNameIndex = routesSource.getContentIndex("route_short_name");
-//		int routeTypeIndex = routesSource.getContentIndex("route_type");
-//		for(String[] entries: routesSource.getContent()){
-//			String shortName = entries[routeShortNameIndex];
-//			String oldId = entries[routeIdIndex];
-//			oldId = oldId.replace("_", "-");
-//			shortName = shortName.replace("_", "-");
-//			if(shortName.equals("")){
-//				System.out.println("Route " + oldId + " has no short route name");
-//				shortName = "NoShortRouteName";
-//			}
-//			Id<TransitLine> newId = Id.create(oldId + "_" + shortName, TransitLine.class);
-//			routeNames.put(Id.create(entries[routeIdIndex], Trip.class),newId);
-//			this.lineToVehicleType.put(newId, Integer.parseInt(entries[routeTypeIndex].trim()));
-//		}
-//		return routeNames;
-//	}
+	private Map<Id<Trip>, Id<TransitLine>> getMatsimLineIds(Map<String, Route> routes) {
+		Map<Id<Trip>, Id<TransitLine>> routeNames = new HashMap<>();
+		for(Route route: routes.values()){
+			String shortName = route.route_short_name;
+			String oldId = route.route_id;
+			oldId = oldId.replace("_", "-");
+			if(shortName != null) {
+			    shortName = shortName.replace("_", "-");
+			} else {
+				System.out.println("Route " + oldId + " has no short route name");
+				shortName = "NoShortRouteName";
+			}
+			Id<TransitLine> newId = Id.create(oldId + "_" + shortName, TransitLine.class);
+			routeNames.put(Id.create(route.route_id, Trip.class),newId);
+			this.lineToVehicleType.put(newId, route.route_type);
+		}
+		return routeNames;
+	}
 //
-//	private Map<Id<Trip>,Id<TransitLine>> getTripToRouteMap(GtfsSource tripsSource, Map<Id<Trip>, Id<TransitLine>> gtfsToMatsimRouteIdAssingments){
-//		Map<Id<Trip>,Id<TransitLine>> routeTripAssignment = new HashMap<>();
-//		int routeIdIndex = tripsSource.getContentIndex("route_id");
-//		int tripIdIndex = tripsSource.getContentIndex("trip_id");
-//		for(String[] entries: tripsSource.getContent()) {
-//			routeTripAssignment.put(Id.create(entries[tripIdIndex], Trip.class), gtfsToMatsimRouteIdAssingments.get(Id.create(entries[routeIdIndex], Trip.class)));				
-//		}
-//		return routeTripAssignment;		
-//	}
-//
-//	private List<String> getUsedServiceIds(GtfsSource calendarSource) {
-//		List<String> serviceIds = new ArrayList<String>();
-//		int serviceIdIndex = calendarSource.getContentIndex("service_id");
-//		int startDateIndex = calendarSource.getContentIndex("start_date");
-//		int endDateIndex = calendarSource.getContentIndex("end_date");
-//		int[] weekdayIndexes= new int[7];
-//		weekdayIndexes[0] = calendarSource.getContentIndex("monday");
-//		weekdayIndexes[1] = calendarSource.getContentIndex("tuesday");
-//		weekdayIndexes[2] = calendarSource.getContentIndex("wednesday");
-//		weekdayIndexes[3] = calendarSource.getContentIndex("thursday");
-//		weekdayIndexes[4] = calendarSource.getContentIndex("friday");
-//		weekdayIndexes[5] = calendarSource.getContentIndex("saturday");
-//		weekdayIndexes[6] = calendarSource.getContentIndex("sunday");
-//		for(String[] entries: calendarSource.getContent()){
-//			int weekday;
-//			if(this.date == 0){
-//				this.date = Long.parseLong(entries[endDateIndex].trim());
-//				weekday = this.getWeekday(date);
-//				System.out.println("Used Date for active schedules: " + this.date + " (weekday: " + weekday + "). If you want to choose another date, please specify it, before running the converter");
-//			}else{
-//				weekday = this.getWeekday(date);
-//			}
-//			if(entries[weekdayIndexes[weekday-1]].equals("1")){
-//				if((this.date >= Double.parseDouble(entries[startDateIndex].trim())) && (this.date <= Double.parseDouble(entries[endDateIndex].trim()))){
-//					serviceIds.add(entries[serviceIdIndex]);
-//				}
-//			}
-//		}
-//		return serviceIds;
-//	}
+	private Map<Id<Trip>,Id<TransitLine>> getTripToRouteMap(Map<String, com.conveyal.gtfs.model.Trip> trips, Map<Id<Trip>, Id<TransitLine>> gtfsToMatsimRouteIdAssingments){
+		Map<Id<Trip>,Id<TransitLine>> routeTripAssignment = new HashMap<>();
+		for(com.conveyal.gtfs.model.Trip trip: trips.values()) {
+			routeTripAssignment.put(Id.create(trip.trip_id, Trip.class), gtfsToMatsimRouteIdAssingments.get(Id.create(trip.route.route_id, Trip.class)));				
+		}
+		return routeTripAssignment;		
+	}
+
+	private List<String> getUsedServiceIds(Map<String, Service> services) {
+		List<String> serviceIds = new ArrayList<String>();
+		System.out.println("Used Date for active schedules: " + this.date.toString() + " (weekday: " + date.getDayOfWeek().toString() + "). If you want to choose another date, please specify it, before running the converter");
+		for(Service service: services.values()){
+			if(this.date != null){
+				
+			
+        			if(service.activeOn(date)){
+        				serviceIds.add(service.service_id);
+        				
+        			}
+			
+//			
+			}
+		}
+		return serviceIds;
+	}
 //
 //	private List<String> getUsedServiceIdsForSpecialDates(GtfsSource calendarDatesSource){
 //		List<String> serviceIds = new ArrayList<String>();
@@ -501,22 +490,18 @@ public class GtfsConverter {
 //	}
 //
 //
-//	/**
-//	 * Problem: Will also generate stops, and links for stops, which are disconnected from the network because
-//	 * they are not used by any line. These will have an invalid link reference. :(
-//	 * @param stopsSource
-//	 */
-//	private void convertStops(GtfsSource stopsSource){
-//		int stopIdIndex = stopsSource.getContentIndex("stop_id");
-//		int stopNameIndex = stopsSource.getContentIndex("stop_name");
-//		int stopLatitudeIndex = stopsSource.getContentIndex("stop_lat");
-//		int stopLongitudeIndex = stopsSource.getContentIndex("stop_lon");
-//		for(String[] entries: stopsSource.getContent()){
-//			TransitStopFacility t = this.ts.getFactory().createTransitStopFacility(Id.create(entries[stopIdIndex], TransitStopFacility.class), transform.transform(new Coord(Double.parseDouble(entries[stopLongitudeIndex]), Double.parseDouble(entries[stopLatitudeIndex]))), false);
-//			t.setName(entries[stopNameIndex]);
-//			ts.addStopFacility(t);
-//		}		
-//	}
+	/**
+	 * Problem: Will also generate stops, and links for stops, which are disconnected from the network because
+	 * they are not used by any line. These will have an invalid link reference. :(
+	 * @param stops 
+	 */
+	private void convertStops(Map<String, Stop> stops ){
+		for(Stop stop: stops.values()){
+			TransitStopFacility t = this.ts.getFactory().createTransitStopFacility(Id.create(stop.stop_id, TransitStopFacility.class), transform.transform(new Coord(stop.stop_lon, stop.stop_lat)), false);
+			t.setName(stop.stop_name);
+			ts.addStopFacility(t);
+		}		
+	}
 //
 //	private Map<Id<Trip>,NetworkRoute> createNetworkRoutes(GtfsSource stopTimesSource) {
 //		Map<Id<Trip>,NetworkRoute> tripRoutes = new HashMap<>();
@@ -574,12 +559,12 @@ public class GtfsConverter {
 //		return linkId;
 //	}
 //
-//	private void createTransitLines(Map<Id<Trip>, Id<TransitLine>> gtfsToMatsimRouteId) {
-//		for(Id<Trip> id: gtfsToMatsimRouteId.keySet()){
-//			TransitLine tl = ts.getFactory().createTransitLine(gtfsToMatsimRouteId.get(id));
-//			ts.addTransitLine(tl);
-//		}		
-//	}
+	private void createTransitLines(Map<Id<Trip>, Id<TransitLine>> gtfsToMatsimRouteId) {
+		for(Id<Trip> id: gtfsToMatsimRouteId.keySet()){
+			TransitLine tl = ts.getFactory().createTransitLine(gtfsToMatsimRouteId.get(id));
+			ts.addTransitLine(tl);
+		}		
+	}
 //
 //	private void createNetworkOfStopsAndTrips(GtfsSource stopTimesSource, TransitSchedule ts){
 //		double freespeedKmPerHour=50;
@@ -906,8 +891,8 @@ public class GtfsConverter {
 //		
 //	}
 //	
-//	private static class Trip {
-//		
-//	}
-//
+	private static class Trip {
+		
+	}
+
 }
