@@ -21,11 +21,10 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
-//import java.util.Iterator;
-//import java.util.LinkedList;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
-import org.hsqldb.lib.Iterator;
 import org.mapdb.Fun.Tuple2;
 import java.util.Map;
 import java.util.Set;
@@ -44,15 +43,15 @@ import org.matsim.core.scenario.MutableScenario;
 import org.matsim.core.utils.geometry.CoordUtils;
 import org.matsim.core.utils.geometry.CoordinateTransformation;
 import org.matsim.core.utils.misc.Time;
-//import org.matsim.pt.transitSchedule.api.Departure;
+import org.matsim.pt.transitSchedule.api.Departure;
 import org.matsim.pt.transitSchedule.api.TransitLine;
 import org.matsim.pt.transitSchedule.api.TransitRoute;
 import org.matsim.pt.transitSchedule.api.TransitRouteStop;
 import org.matsim.pt.transitSchedule.api.TransitSchedule;
 import org.matsim.pt.transitSchedule.api.TransitStopFacility;
-//import org.matsim.vehicles.Vehicle;
-//import org.matsim.vehicles.VehicleCapacity;
-//import org.matsim.vehicles.VehicleType;
+import org.matsim.vehicles.Vehicle;
+import org.matsim.vehicles.VehicleCapacity;
+import org.matsim.vehicles.VehicleType;
 //
 //import com.vividsolutions.jts.util.Assert;
 //
@@ -63,7 +62,7 @@ public class GtfsConverter {
 	private CoordinateTransformation transform;
 	private MutableScenario scenario;
 	private TransitSchedule ts;
-//	private Map<String,Integer> vehicleIdsAndTypes = new HashMap<String,Integer>();
+	private Map<String,Integer> vehicleIdsAndTypes = new HashMap<String,Integer>();
 	private Map<Id<TransitLine>,Integer> lineToVehicleType = new HashMap<>();
 	private Map<Id<Trip>,Id<TransitRoute>> matsimRouteIdToGtfsTripIdAssignments = new HashMap<>();
 	private boolean createShapedNetwork = false;
@@ -71,8 +70,8 @@ public class GtfsConverter {
 	private LocalDate date = LocalDate.now();
 //
 //
-//	// Fields for shaped Network
-//	// (TripId,ShapeId)
+	// Fields for shaped Network
+	// (TripId,ShapeId)
 	private Map<String,String> shapeIdToTripIdAssignments = new HashMap<String,String>();
 	// (LinkId,(TripId,FromShapeDist,ToShapeDist))
 	private Map<Id<Link>,String[]> shapedLinkIds = new HashMap<>();
@@ -80,9 +79,9 @@ public class GtfsConverter {
 	// (LinkId,(TripId,FromCoordX, FromCoordY ,ToCoordX, ToCoordY)) - Both Coordinates as Strings and in Matsim-KS
 	private Map<Id<Link>,String[]> shapedLinkIdsCoordinate = new HashMap<>();
 	private boolean alternativeStationToShapeAssignment = false;
-//	private double toleranceInM = 0;
+	private double toleranceInM = 0;
 //	// (ShapeId, (shapeDist, x, y))
-//	private Map<Id<Shape>,List<String[]>> shapes = new HashMap<Id<Shape>,List<String[]>>();
+	private Map<Id<Shape>,List<String[]>> shapes = new HashMap<Id<Shape>,List<String[]>>();
 //
 //
 //
@@ -180,26 +179,26 @@ public class GtfsConverter {
 		System.out.println("Reading of TripIds succesfull: " + usedTripIds);
 
 		// Create the Network
-		System.out.println("Creating Network");
-		this.createNetworkOfStopsAndTrips(this.feed.stop_times, ts);
-//
-//		// Get the TripRoutes
+//		System.out.println("Creating Network");
+//		this.createNetworkOfStopsAndTrips(this.feed.stop_times, ts);
+
+		// Get the TripRoutes
 //		Map<Id<Trip>,NetworkRoute> tripRoute;
 //		System.out.println("Create NetworkRoutes");
-//		tripRoute = createNetworkRoutes(stopTimesSource);
+//		tripRoute = createNetworkRoutes(this.feed.stop_times);
 //		if(this.createShapedNetwork){
 //			System.out.println("Creating shaped Network");
-//			this.convertShapes(shapesSource);
+//			this.convertShapes(this.feed.shapes);
 //			Map<Id<Link>, List<Coord>> shapedLinks = this.assignShapesToLinks();
 //			NetworkEnricher networkEnricher = new NetworkEnricher(scenario.getNetwork());
 //			tripRoute = networkEnricher.replaceLinks(shapedLinks, tripRoute);
 //			scenario.setNetwork(networkEnricher.getEnrichedNetwork());
 //		}
-//
-//		// Convert the schedules for the trips
-//		System.out.println("Convert the schedules");
-//		this.convertSchedules(stopTimesSource, tripToRoute, tripRoute);
-//
+
+//		 Convert the schedules for the trips
+		System.out.println("Convert the schedules");
+		this.convertSchedules(this.feed.stop_times, tripToRoute/*, tripRoute*/);
+
 //		// If you use the optional frequencies.txt, it will be transformed here
 //		if((new File(frequenciesFilename)).exists()){
 //			this.convertFrequencies(frequenciesSource, tripToRoute, usedTripIds);
@@ -275,7 +274,7 @@ public class GtfsConverter {
         				
         			}
 			
-//			
+			
 			}
 		}
 		return serviceIds;
@@ -361,128 +360,131 @@ public class GtfsConverter {
 //			oldTripId = entries[tripIdIndex];
 //		}
 //	}
-//
-//
-//	private void convertSchedules(GtfsSource stopTimesSource, Map<Id<Trip>, Id<TransitLine>> routeToTripAssignments, Map<Id<Trip>, NetworkRoute> tripRoute){
-//		List<TransitRouteStop> stops = new LinkedList<TransitRouteStop>();
+
+
+	private void convertSchedules(ConcurrentNavigableMap<Tuple2, StopTime> stop_times, Map<Id<Trip>, Id<TransitLine>> routeToTripAssignments){
+		List<TransitRouteStop> stops = new LinkedList<TransitRouteStop>();
 //		int tripIdIndex = stopTimesSource.getContentIndex("trip_id");
 //		int arrivalTimeIndex = stopTimesSource.getContentIndex("arrival_time");
 //		int departureTimeIndex = stopTimesSource.getContentIndex("departure_time");
 //		int stopIdIndex = stopTimesSource.getContentIndex("stop_id");
 //		String[] firstEntry = stopTimesSource.getContent().get(0);
-//		String currentTrip = firstEntry[tripIdIndex];
-//		Double departureTime = Time.parseTime(firstEntry[arrivalTimeIndex].trim());
-//		Departure departure = ts.getFactory().createDeparture(Id.create(firstEntry[tripIdIndex], Departure.class), departureTime);
-//		String vehicleId = firstEntry[tripIdIndex];
-//		departure.setVehicleId(Id.create(vehicleId, Vehicle.class));		
-//		this.vehicleIdsAndTypes.put(vehicleId,lineToVehicleType.get(routeToTripAssignments.get(Id.create(firstEntry[tripIdIndex], Trip.class))));
-//		int nRows = stopTimesSource.getContent().size();
-//		int nRow = 1;
-//		for(String[] entries: stopTimesSource.getContent()) {		
-//			System.out.println(nRow++ + "/" + nRows);
-//			Id<Trip> currentTripId = Id.create(currentTrip, Trip.class);
-//			Id<Trip> tripId = Id.create(entries[tripIdIndex], Trip.class);
-//			Id<TransitStopFacility> stopId = Id.create(entries[stopIdIndex], TransitStopFacility.class);
-//			if(entries[tripIdIndex].equals(currentTrip)){
-//				TransitStopFacility stop = ts.getFacilities().get(stopId);
-//				TransitRouteStop routeStop = ts.getFactory().createTransitRouteStop(stop, Time.parseTime(entries[arrivalTimeIndex].trim())-departureTime, Time.parseTime(entries[departureTimeIndex].trim())-departureTime);
-//				stops.add(routeStop);	
-//			}else{
-//				//finish old route
-//				stops = this.interpolateMissingDepartures(stops);
-//				TransitLine tl = ts.getTransitLines().get(routeToTripAssignments.get(currentTripId));
-//				Id<TransitRoute> routeId = this.matsimRouteIdToGtfsTripIdAssignments.get(currentTripId);
+		Iterator<StopTime> it = stop_times.values().iterator();
+		StopTime stopTime = it.next();
+		String currentTrip = stopTime.trip_id;
+		Double departureTime = Time.parseTime(String.valueOf(stopTime.departure_time));
+		Departure departure = ts.getFactory().createDeparture(Id.create(currentTrip, Departure.class), departureTime);
+		String vehicleId = stopTime.trip_id;
+		departure.setVehicleId(Id.create(vehicleId, Vehicle.class));		
+		this.vehicleIdsAndTypes.put(vehicleId,lineToVehicleType.get(routeToTripAssignments.get(Id.create(stopTime.trip_id, Trip.class))));
+		int nRows = stop_times.values().size();
+		int nRow = 1;
+		for(;it.hasNext();) {
+		    	stopTime = it.next();
+			System.out.println(nRow++ + "/" + nRows);
+			Id<Trip> currentTripId = Id.create(currentTrip, Trip.class);
+			Id<Trip> tripId = Id.create(stopTime.trip_id, Trip.class);
+			Id<TransitStopFacility> stopId = Id.create(stopTime.stop_id, TransitStopFacility.class);
+			if(stopTime.trip_id.equals(currentTrip)){
+				TransitStopFacility stop = ts.getFacilities().get(stopId);
+				TransitRouteStop routeStop = ts.getFactory().createTransitRouteStop(stop, Time.parseTime(String.valueOf(stopTime.arrival_time))-departureTime, Time.parseTime(String.valueOf(stopTime.departure_time))-departureTime);
+				stops.add(routeStop);	
+			}else{
+				//finish old route
+				stops = this.interpolateMissingDepartures(stops);
+				TransitLine tl = ts.getTransitLines().get(routeToTripAssignments.get(currentTripId));
+				Id<TransitRoute> routeId = this.matsimRouteIdToGtfsTripIdAssignments.get(currentTripId);
 //				NetworkRoute networkRoute = tripRoute.get(currentTripId);
-//				TransitRoute tr = findOrAddTransitRoute(tl, stops,  networkRoute, routeId);
-//				tr.addDeparture(departure);
-//				stops = new LinkedList<TransitRouteStop>();
-//				//begin new route
-//				departureTime = Time.parseTime(entries[arrivalTimeIndex].trim());
-//				departure = ts.getFactory().createDeparture(Id.create(entries[tripIdIndex], Departure.class), departureTime);
-//				vehicleId = tripId.toString();
-//				departure.setVehicleId(Id.create(vehicleId, Vehicle.class));
-//				this.vehicleIdsAndTypes.put(vehicleId,lineToVehicleType.get(routeToTripAssignments.get(tripId)));												
-//				TransitStopFacility stop = ts.getFacilities().get(stopId);
-//				TransitRouteStop routeStop = ts.getFactory().createTransitRouteStop(stop, 0, Time.parseTime(entries[departureTimeIndex].trim())-departureTime);
-//				stops.add(routeStop);
-//				currentTrip = entries[tripIdIndex];						
-//			}						
-//		}
-//		// The last trip of the file was not added, so it needs to be added now
-//		Id<Trip> currentTripId = Id.create(currentTrip, Trip.class);
-//		//finish old route
-//		stops = this.interpolateMissingDepartures(stops);
-//		TransitLine tl = ts.getTransitLines().get(routeToTripAssignments.get(currentTripId));
-//		Id<TransitRoute> routeId = this.matsimRouteIdToGtfsTripIdAssignments.get(currentTripId);
+				TransitRoute tr = findOrAddTransitRoute(tl, stops,  /*networkRoute,*/ routeId);
+				tr.addDeparture(departure);
+				stops = new LinkedList<TransitRouteStop>();
+				//begin new route
+				departureTime = Time.parseTime(String.valueOf(stopTime.departure_time));
+				departure = ts.getFactory().createDeparture(Id.create(stopTime.trip_id, Departure.class), departureTime);
+				vehicleId = tripId.toString();
+				departure.setVehicleId(Id.create(vehicleId, Vehicle.class));
+				this.vehicleIdsAndTypes.put(vehicleId,lineToVehicleType.get(routeToTripAssignments.get(tripId)));												
+				TransitStopFacility stop = ts.getFacilities().get(stopId);
+				TransitRouteStop routeStop = ts.getFactory().createTransitRouteStop(stop, 0, Time.parseTime(String.valueOf(stopTime.departure_time))-departureTime);
+				stops.add(routeStop);
+				currentTrip = stopTime.trip_id;						
+			}						
+		}
+		// The last trip of the file was not added, so it needs to be added now
+		Id<Trip> currentTripId = Id.create(currentTrip, Trip.class);
+		//finish old route
+		stops = this.interpolateMissingDepartures(stops);
+		TransitLine tl = ts.getTransitLines().get(routeToTripAssignments.get(currentTripId));
+		Id<TransitRoute> routeId = this.matsimRouteIdToGtfsTripIdAssignments.get(currentTripId);
 //		NetworkRoute networkRoute = tripRoute.get(currentTripId);
-//		TransitRoute tr = findOrAddTransitRoute(tl, stops,  networkRoute, routeId);
-//		tr.addDeparture(departure);
-//	}
+		TransitRoute tr = findOrAddTransitRoute(tl, stops,  /*networkRoute,*/ routeId);
+		tr.addDeparture(departure);
+	}
 //
-//	private TransitRoute findOrAddTransitRoute(TransitLine tl, List<TransitRouteStop> stops, NetworkRoute networkRoute, Id<TransitRoute> routeId) {
-//		for (TransitRoute tr : tl.getRoutes().values()) {
-//			if (tr.getStops().equals(stops)) {
-//				System.out.println("Saved a route.");
-//				return tr;
-//			} 
-//		}
-//		TransitRoute tr = ts.getFactory().createTransitRoute(routeId, networkRoute, stops, "pt");
-//		tl.addRoute(tr);
-//		return tr;
-//	}
-//
-//	/**
-//	 * Beats me how this works. michaz '13
-//	 * @param stops
-//	 * @return
-//	 */
-//	private List<TransitRouteStop> interpolateMissingDepartures(List<TransitRouteStop> stops) {
-//		List<TransitRouteStop> result = new ArrayList<TransitRouteStop>();
-//		List<TransitRouteStop> toBeInterpolated = new ArrayList<TransitRouteStop>();
-//		Map<Integer,TransitRouteStop> toBeReplaced = new HashMap<Integer,TransitRouteStop>();
-//		boolean properDeparture = true;
-//		int lastProperDepartureIndex = 0;
-//		for(Iterator<TransitRouteStop> it = stops.iterator(); it.hasNext(); ){
-//			TransitRouteStop s = it.next();
-//			if(Double.isInfinite(s.getDepartureOffset())){
-//				toBeInterpolated.add(s);
-//				properDeparture = false;
-//			}else if(!properDeparture){
-//				double totalLength = 0;
-//				TransitRouteStop lastProperStop = stops.get(lastProperDepartureIndex);
-//				for(TransitRouteStop sr: toBeInterpolated){
-//					totalLength = CoordUtils.calcDistance(sr.getStopFacility().getCoord(), lastProperStop.getStopFacility().getCoord()) + totalLength;
-//				}
-//				totalLength = totalLength + CoordUtils.calcDistance(toBeInterpolated.get(toBeInterpolated.size()-1).getStopFacility().getCoord(), s.getStopFacility().getCoord());
-//				double timeAvaible = s.getArrivalOffset() - lastProperStop.getDepartureOffset();
-//				double oldDepartureOffset = lastProperStop.getDepartureOffset();
-//				for(Iterator<TransitRouteStop> it2 = toBeInterpolated.iterator(); it2.hasNext();){
-//					TransitRouteStop sr = it2.next();
-//					double newDepartureOffset = (CoordUtils.calcDistance(sr.getStopFacility().getCoord(), lastProperStop.getStopFacility().getCoord()))/(totalLength) * timeAvaible + oldDepartureOffset;
-//					oldDepartureOffset = newDepartureOffset;
-//					TransitRouteStop newStop = ts.getFactory().createTransitRouteStop(sr.getStopFacility(), newDepartureOffset, newDepartureOffset);
-//					toBeReplaced.put(stops.indexOf(sr), newStop);
-//				}
-//				toBeInterpolated = new ArrayList<TransitRouteStop>();
-//				lastProperDepartureIndex = stops.indexOf(s);
-//				properDeparture = true;
-//			}else{
-//				lastProperDepartureIndex = stops.indexOf(s);
-//			}
-//		}
-//		for(TransitRouteStop s: stops){
-//			if(toBeReplaced.containsKey(stops.indexOf(s))){
-//				s.setAwaitDepartureTime(false);
-//				result.add(toBeReplaced.get(stops.indexOf(s)));
-//			}else{
-//				s.setAwaitDepartureTime(true);
-//				result.add(s);
-//			}
-//		}
-//		return result;
-//	}
-//
-//
+	private TransitRoute findOrAddTransitRoute(TransitLine tl, List<TransitRouteStop> stops,  Id<TransitRoute> routeId) {
+		for (TransitRoute tr : tl.getRoutes().values()) {
+			if (tr.getStops().equals(stops)) {
+				System.out.println("Saved a route.");
+				return tr;
+			} 
+		}
+		TransitRoute tr = ts.getFactory().createTransitRoute(routeId, /*networkRoute*/ null, stops, "pt");
+		tl.addRoute(tr);
+		return tr;
+	}
+
+	/**
+	 * Beats me how this works. michaz '13
+	 * @param stops
+	 * @return
+	 */
+	private List<TransitRouteStop> interpolateMissingDepartures(List<TransitRouteStop> stops) {
+		List<TransitRouteStop> result = new ArrayList<TransitRouteStop>();
+		List<TransitRouteStop> toBeInterpolated = new ArrayList<TransitRouteStop>();
+		Map<Integer,TransitRouteStop> toBeReplaced = new HashMap<Integer,TransitRouteStop>();
+		boolean properDeparture = true;
+		int lastProperDepartureIndex = 0;
+		for(Iterator<TransitRouteStop> it = stops.iterator(); it.hasNext(); ){
+			TransitRouteStop s = it.next();
+			if(Double.isInfinite(s.getDepartureOffset())){
+				toBeInterpolated.add(s);
+				properDeparture = false;
+			}else if(!properDeparture){
+				double totalLength = 0;
+				TransitRouteStop lastProperStop = stops.get(lastProperDepartureIndex);
+				for(TransitRouteStop sr: toBeInterpolated){
+					totalLength = CoordUtils.calcDistance(sr.getStopFacility().getCoord(), lastProperStop.getStopFacility().getCoord()) + totalLength;
+				}
+				totalLength = totalLength + CoordUtils.calcDistance(toBeInterpolated.get(toBeInterpolated.size()-1).getStopFacility().getCoord(), s.getStopFacility().getCoord());
+				double timeAvaible = s.getArrivalOffset() - lastProperStop.getDepartureOffset();
+				double oldDepartureOffset = lastProperStop.getDepartureOffset();
+				for(Iterator<TransitRouteStop> it2 = toBeInterpolated.iterator(); it2.hasNext();){
+					TransitRouteStop sr = it2.next();
+					double newDepartureOffset = (CoordUtils.calcDistance(sr.getStopFacility().getCoord(), lastProperStop.getStopFacility().getCoord()))/(totalLength) * timeAvaible + oldDepartureOffset;
+					oldDepartureOffset = newDepartureOffset;
+					TransitRouteStop newStop = ts.getFactory().createTransitRouteStop(sr.getStopFacility(), newDepartureOffset, newDepartureOffset);
+					toBeReplaced.put(stops.indexOf(sr), newStop);
+				}
+				toBeInterpolated = new ArrayList<TransitRouteStop>();
+				lastProperDepartureIndex = stops.indexOf(s);
+				properDeparture = true;
+			}else{
+				lastProperDepartureIndex = stops.indexOf(s);
+			}
+		}
+		for(TransitRouteStop s: stops){
+			if(toBeReplaced.containsKey(stops.indexOf(s))){
+				s.setAwaitDepartureTime(false);
+				result.add(toBeReplaced.get(stops.indexOf(s)));
+			}else{
+				s.setAwaitDepartureTime(true);
+				result.add(s);
+			}
+		}
+		return result;
+	}
+
+
 	/**
 	 * Problem: Will also generate stops, and links for stops, which are disconnected from the network because
 	 * they are not used by any line. These will have an invalid link reference. :(
@@ -495,27 +497,28 @@ public class GtfsConverter {
 			ts.addStopFacility(t);
 		}		
 	}
-//
-//	private Map<Id<Trip>,NetworkRoute> createNetworkRoutes(GtfsSource stopTimesSource) {
+
+//	private Map<Id<Trip>,NetworkRoute> createNetworkRoutes(ConcurrentNavigableMap<Tuple2, StopTime> stop_times) {
 //		Map<Id<Trip>,NetworkRoute> tripRoutes = new HashMap<>();
-//		int tripIdIndex = stopTimesSource.getContentIndex("trip_id");
-//		int stopIdIndex = stopTimesSource.getContentIndex("stop_id");
-//		String[] firstEntry = stopTimesSource.getContent().get(0);			
 //		LinkedList<Id<Link>> route = new LinkedList<Id<Link>>();
-//		String currentTrip = firstEntry[tripIdIndex];
-//		String startStation = firstEntry[stopIdIndex];
-//		for(String[] entries: stopTimesSource.getContent()) {
-//			String nextStation = entries[stopIdIndex];				
-//			if(currentTrip.equals(entries[tripIdIndex])){					
+//		
+//		Iterator<StopTime> it = stop_times.values().iterator();
+//		StopTime stopTime = it.next();
+//		String currentTrip = stopTime.trip_id;
+//		String startStation = stopTime.stop_id;
+//		for(; it.hasNext();) {
+//		    stopTime = it.next();
+//			String nextStation = stopTime.stop_id;				
+//			if(currentTrip.equals(stopTime.trip_id)){					
 //				if(!(startStation.equals(nextStation))){
 //					Id<Node> startStationNodeId = Id.create(startStation, Node.class);
 //					Id<Node> nextStationNodeId = Id.create(nextStation, Node.class);
 //					Id<Link> linkId = findLinkFromNodeToNode(startStationNodeId, nextStationNodeId);
 //					route.add(linkId);
 //					route.add(Id.create("dL2_" + nextStation, Link.class));
-//					route.add(ts.getFacilities().get(Id.create(entries[stopIdIndex], TransitStopFacility.class)).getLinkId());
+//					route.add(ts.getFacilities().get(Id.create(stopTime.stop_id, TransitStopFacility.class)).getLinkId());
 //				}else{
-//					route.add(ts.getFacilities().get(Id.create(entries[stopIdIndex], TransitStopFacility.class)).getLinkId());
+//					route.add(ts.getFacilities().get(Id.create(stopTime.stop_id, TransitStopFacility.class)).getLinkId());
 //				}
 //				startStation = nextStation;
 //			}else{
@@ -525,10 +528,10 @@ public class GtfsConverter {
 //				}
 //				tripRoutes.put(Id.create(currentTrip, Trip.class), netRoute);
 //				// Start new Route
-//				currentTrip = entries[tripIdIndex];
+//				currentTrip = stopTime.trip_id;
 //				route = new LinkedList<Id<Link>>();
-//				route.add(ts.getFacilities().get(Id.create(entries[stopIdIndex], TransitStopFacility.class)).getLinkId());
-//				startStation = entries[stopIdIndex];
+//				route.add(ts.getFacilities().get(Id.create(stopTime.stop_id, TransitStopFacility.class)).getLinkId());
+//				startStation = stopTime.stop_id;
 //			}
 //		}		
 //		NetworkRoute netRoute = (NetworkRoute) (new LinkNetworkRouteFactory()).createRoute(route.getFirst(), route.getLast());
@@ -538,8 +541,8 @@ public class GtfsConverter {
 //		tripRoutes.put(Id.create(currentTrip, Trip.class), netRoute);
 //		return tripRoutes;		
 //	}
-//
-//
+
+
 //	private Id<Link> findLinkFromNodeToNode(Id<Node> fromNodeId, Id<Node> toNodeId) {
 //		Id<Link> linkId = null;
 //		for(Id<Link> fromId: scenario.getNetwork().getNodes().get(fromNodeId).getOutLinks().keySet()){
@@ -551,7 +554,7 @@ public class GtfsConverter {
 //		}
 //		return linkId;
 //	}
-//
+
 	private void createTransitLines(Map<Id<Trip>, Id<TransitLine>> gtfsToMatsimRouteId) {
 		for(Id<Trip> id: gtfsToMatsimRouteId.keySet()){
 			TransitLine tl = ts.getFactory().createTransitLine(gtfsToMatsimRouteId.get(id));
@@ -559,166 +562,166 @@ public class GtfsConverter {
 		}		
 	}
 
-	private void createNetworkOfStopsAndTrips( ConcurrentNavigableMap<Tuple2, StopTime> stop_times, TransitSchedule ts){
-		double freespeedKmPerHour=50;
-		double capacity = 1500.0;
-		int numLanes = 1;
-		long i = 0;
-		// To prevent the creation of similar links in different directions there need to be a Map which contains all existing connections
-		Map<Id<Node>,List<Id<Node>>> fromNodes = new HashMap<>();
-		// Create a new Network
-		Network network = scenario.getNetwork();
-		// Add all stops as nodes
-		Map<Id<TransitStopFacility>, TransitStopFacility> stops = ts.getFacilities();
-		Map<Id<Node>, ? extends Node> nodes = network.getNodes();
-		for(Id<TransitStopFacility> id: stops.keySet()){
-			TransitStopFacility stop = stops.get(id);
-			NodeImpl n = new NodeImpl(Id.create(id, Node.class));
-			n.setCoord(stop.getCoord());
-			network.addNode(n);
-			createDummyNodeAndLinks(Id.create(id, Node.class), capacity, numLanes, network, nodes);
-			stop.setLinkId(Id.create("dL1_"+ stop.getId().toString(), Link.class));
-		}
-		// Get the Links from the trips in stopTimesSource
-//		if((shapeDistIndex < 0) && (this.createShapedNetwork)){
-//			System.out.println("Couldn't find the shape_dist_traveled field in stop_times.txt. Now it uses the alternative station to shape assingment.");
-//			this.alternativeStationToShapeAssignment = true;
+//	private void createNetworkOfStopsAndTrips( ConcurrentNavigableMap<Tuple2, StopTime> stop_times, TransitSchedule ts){
+//		double freespeedKmPerHour=50;
+//		double capacity = 1500.0;
+//		int numLanes = 1;
+//		long i = 0;
+//		// To prevent the creation of similar links in different directions there need to be a Map which contains all existing connections
+//		Map<Id<Node>,List<Id<Node>>> fromNodes = new HashMap<>();
+//		// Create a new Network
+//		Network network = scenario.getNetwork();
+//		// Add all stops as nodes
+//		Map<Id<TransitStopFacility>, TransitStopFacility> stops = ts.getFacilities();
+//		Map<Id<Node>, ? extends Node> nodes = network.getNodes();
+//		for(Id<TransitStopFacility> id: stops.keySet()){
+//			TransitStopFacility stop = stops.get(id);
+//			NodeImpl n = new NodeImpl(Id.create(id, Node.class));
+//			n.setCoord(stop.getCoord());
+//			network.addNode(n);
+//			createDummyNodeAndLinks(Id.create(id, Node.class), capacity, numLanes, network, nodes);
+//			stop.setLinkId(Id.create("dL1_"+ stop.getId().toString(), Link.class));
 //		}
-		boolean first = true;
-		StopTime stopTime = null;
-		for(java.util.Iterator<StopTime> it = stop_times.values().iterator(); it.hasNext();) {
-		    	if(first) {
-		    	   stopTime = it.next();
-		    	   first = false;
-		    	}
-		    	
-			boolean addLink = false;	
-			Id<Node> fromNodeId = Id.create(stopTime.stop_id, Node.class);
-			double departureTime = Time.parseTime(String.valueOf(stopTime.departure_time));
-			String usedTripId = stopTime.trip_id;
-			String fromShapeDist = "";
-			Coord fromShapeCoord = null;				
-			// Prepare the replacing with shaped links
-			if(createShapedNetwork){
-				if(!this.alternativeStationToShapeAssignment){
-					fromShapeDist = String.valueOf(stopTime.shape_dist_traveled);
-					if(fromShapeDist.isEmpty()){
-						fromShapeDist = "0.0";
-					}
-				}else{
-					//WARNING: Couldn't find shape_dist_traveled header in stop_times.txt. The converter will try to identify the Stations by its coordinates.
-					this.alternativeStationToShapeAssignment = true;
-					fromShapeCoord = network.getNodes().get(fromNodeId).getCoord();
-				}
-			}
-			if(it.hasNext()){
-				stopTime = it.next();
-				Id<Node> toNodeId = Id.create(stopTime.stop_id, Node.class);
-				double arrivalTime = Time.parseTime(String.valueOf(stopTime.arrival_time));
-				String toShapeDist = "";
-				Coord toShapeCoord = null;
-				// Prepare the replacing with shaped links
-				if(createShapedNetwork){
-					if(!this.alternativeStationToShapeAssignment){
-						toShapeDist = String.valueOf(stopTime.shape_dist_traveled);
-					}else{
-						toShapeCoord = network.getNodes().get(toNodeId).getCoord();
-					}						
-				}
-				if(fromNodes.containsKey(fromNodeId)){
-					if(!(fromNodes.get(fromNodeId)).contains(toNodeId)){
-						addLink = true;
-					}
-				}else{
-					addLink = true;
-					fromNodes.put(fromNodeId, new ArrayList<Id<Node>>());
-				}
-				if(!(fromNodes.containsKey(toNodeId))){
-					fromNodes.put(toNodeId, new ArrayList<Id<Node>>());
-				}
-				// No 0-Length Links
-				if(fromNodeId.equals(toNodeId)){
-					addLink = false;
-				}
-				// If the toNode belongs to a different trip, there should not be a link!
-				if(!usedTripId.equals(stopTime.trip_id)){
-					addLink = false;				
-				}
-				// for each stop should exist one dummy node with a link in to it (dL2_) and a link back to the road (dL1_).
+//		// Get the Links from the trips in stopTimesSource
+////		if((shapeDistIndex < 0) && (this.createShapedNetwork)){
+////			System.out.println("Couldn't find the shape_dist_traveled field in stop_times.txt. Now it uses the alternative station to shape assingment.");
+////			this.alternativeStationToShapeAssignment = true;
+////		}
+//		boolean first = true;
+//		StopTime stopTime = null;
+//		for(java.util.Iterator<StopTime> it = stop_times.values().iterator(); it.hasNext();) {
+//		    	if(first) {
+//		    	   stopTime = it.next();
+//		    	   first = false;
+//		    	}
+//		    	
+//			boolean addLink = false;	
+//			Id<Node> fromNodeId = Id.create(stopTime.stop_id, Node.class);
+//			double departureTime = Time.parseTime(String.valueOf(stopTime.departure_time));
+//			String usedTripId = stopTime.trip_id;
+//			String fromShapeDist = "";
+//			Coord fromShapeCoord = null;				
+//			// Prepare the replacing with shaped links
+//			if(createShapedNetwork){
+//				if(!this.alternativeStationToShapeAssignment){
+//					fromShapeDist = String.valueOf(stopTime.shape_dist_traveled);
+//					if(fromShapeDist.isEmpty()){
+//						fromShapeDist = "0.0";
+//					}
+//				}else{
+//					//WARNING: Couldn't find shape_dist_traveled header in stop_times.txt. The converter will try to identify the Stations by its coordinates.
+//					this.alternativeStationToShapeAssignment = true;
+//					fromShapeCoord = network.getNodes().get(fromNodeId).getCoord();
+//				}
+//			}
+//			if(it.hasNext()){
+//				stopTime = it.next();
+//				Id<Node> toNodeId = Id.create(stopTime.stop_id, Node.class);
+//				double arrivalTime = Time.parseTime(String.valueOf(stopTime.arrival_time));
+//				String toShapeDist = "";
+//				Coord toShapeCoord = null;
+//				// Prepare the replacing with shaped links
+//				if(createShapedNetwork){
+//					if(!this.alternativeStationToShapeAssignment){
+//						toShapeDist = String.valueOf(stopTime.shape_dist_traveled);
+//					}else{
+//						toShapeCoord = network.getNodes().get(toNodeId).getCoord();
+//					}						
+//				}
+//				if(fromNodes.containsKey(fromNodeId)){
+//					if(!(fromNodes.get(fromNodeId)).contains(toNodeId)){
+//						addLink = true;
+//					}
+//				}else{
+//					addLink = true;
+//					fromNodes.put(fromNodeId, new ArrayList<Id<Node>>());
+//				}
+//				if(!(fromNodes.containsKey(toNodeId))){
+//					fromNodes.put(toNodeId, new ArrayList<Id<Node>>());
+//				}
+//				// No 0-Length Links
+//				if(fromNodeId.equals(toNodeId)){
+//					addLink = false;
+//				}
+//				// If the toNode belongs to a different trip, there should not be a link!
+//				if(!usedTripId.equals(stopTime.trip_id)){
+//					addLink = false;				
+//				}
+//				// for each stop should exist one dummy node with a link in to it (dL2_) and a link back to the road (dL1_).
+//
+//				Link link = null;
+//				if(addLink){
+//					double length = CoordUtils.calcDistance(nodes.get(fromNodeId).getCoord(), nodes.get(toNodeId).getCoord());
+//					Double freespeed = freespeedKmPerHour/3.6;
+//					if((length > 0.0) && (!Double.isInfinite(departureTime)) && (!Double.isInfinite(arrivalTime))){
+//						freespeed = length/(arrivalTime - departureTime);
+//						if(freespeed.isInfinite()){
+//							freespeed = freespeedKmPerHour/3.6;
+//							System.out.println("The Difference between ArrivalTime at one Stop " + ts.getFacilities().get(toNodeId).getName() + "(" + toNodeId + ") and DepartureTime at the previous Stop " + ts.getFacilities().get(fromNodeId).getName() + "(" + fromNodeId + ") is 0. That leads to high freespeeds.");
+//						}
+//					}
+//					link = network.getFactory().createLink(Id.create(i++, Link.class), nodes.get(fromNodeId), nodes.get(toNodeId));
+//					link.setLength(length);
+//					link.setFreespeed(freespeed);
+//					link.setCapacity(capacity);
+//					link.setNumberOfLanes(numLanes);
+//					network.addLink(link);
+//					// Change the linktype to pt
+//					Set<String> modes = new HashSet<String>();
+//					modes.add(TransportMode.pt);
+//					link.setAllowedModes(modes);
+//					fromNodes.get(fromNodeId).add(toNodeId);
+//					// Prepare the replacing with shaped links
+//					if(createShapedNetwork){
+//						if(!alternativeStationToShapeAssignment){
+//							String[] shapeInfos = new String[3];
+//							shapeInfos[0] = usedTripId;
+//							shapeInfos[1] = fromShapeDist;
+//							shapeInfos[2] = toShapeDist;
+//							this.shapedLinkIds.put(link.getId(), shapeInfos);
+//						}else{
+//							String[] shapeInfos = new String[5];
+//							shapeInfos[0] = usedTripId;
+//							shapeInfos[1] = String.valueOf(fromShapeCoord.getX());
+//							shapeInfos[2] = String.valueOf(fromShapeCoord.getY());
+//							shapeInfos[3] = String.valueOf(toShapeCoord.getX());
+//							shapeInfos[4] = String.valueOf(toShapeCoord.getY());
+//							this.shapedLinkIdsCoordinate.put(link.getId(), shapeInfos);
+//						}							
+//					}						
+//				}									
+//			}		
+//		}
+//	}
 
-				Link link = null;
-				if(addLink){
-					double length = CoordUtils.calcDistance(nodes.get(fromNodeId).getCoord(), nodes.get(toNodeId).getCoord());
-					Double freespeed = freespeedKmPerHour/3.6;
-					if((length > 0.0) && (!Double.isInfinite(departureTime)) && (!Double.isInfinite(arrivalTime))){
-						freespeed = length/(arrivalTime - departureTime);
-						if(freespeed.isInfinite()){
-							freespeed = freespeedKmPerHour/3.6;
-							System.out.println("The Difference between ArrivalTime at one Stop " + ts.getFacilities().get(toNodeId).getName() + "(" + toNodeId + ") and DepartureTime at the previous Stop " + ts.getFacilities().get(fromNodeId).getName() + "(" + fromNodeId + ") is 0. That leads to high freespeeds.");
-						}
-					}
-					link = network.getFactory().createLink(Id.create(i++, Link.class), nodes.get(fromNodeId), nodes.get(toNodeId));
-					link.setLength(length);
-					link.setFreespeed(freespeed);
-					link.setCapacity(capacity);
-					link.setNumberOfLanes(numLanes);
-					network.addLink(link);
-					// Change the linktype to pt
-					Set<String> modes = new HashSet<String>();
-					modes.add(TransportMode.pt);
-					link.setAllowedModes(modes);
-					fromNodes.get(fromNodeId).add(toNodeId);
-					// Prepare the replacing with shaped links
-					if(createShapedNetwork){
-						if(!alternativeStationToShapeAssignment){
-							String[] shapeInfos = new String[3];
-							shapeInfos[0] = usedTripId;
-							shapeInfos[1] = fromShapeDist;
-							shapeInfos[2] = toShapeDist;
-							this.shapedLinkIds.put(link.getId(), shapeInfos);
-						}else{
-							String[] shapeInfos = new String[5];
-							shapeInfos[0] = usedTripId;
-							shapeInfos[1] = String.valueOf(fromShapeCoord.getX());
-							shapeInfos[2] = String.valueOf(fromShapeCoord.getY());
-							shapeInfos[3] = String.valueOf(toShapeCoord.getX());
-							shapeInfos[4] = String.valueOf(toShapeCoord.getY());
-							this.shapedLinkIdsCoordinate.put(link.getId(), shapeInfos);
-						}							
-					}						
-				}									
-			}		
-		}
-	}
-
-	private void createDummyNodeAndLinks(Id<Node> toNodeId, double capacity,
-			int numLanes, Network network, Map<Id<Node>, ? extends Node> nodes) {
-		Id<Node> dummyId = Id.create("dN_" + toNodeId, Node.class);
-		if(!(network.getNodes().containsKey(dummyId))){
-			NodeImpl n = new NodeImpl(dummyId);
-			n.setCoord(new Coord(nodes.get(toNodeId).getCoord().getX() + 1, nodes.get(toNodeId).getCoord().getY() + 1));
-			network.addNode(n);
-			double length = 50;
-			Link link = network.getFactory().createLink(Id.create("dL1_" + toNodeId, Link.class), n, nodes.get(toNodeId));
-			link.setLength(length);
-			link.setFreespeed(1000);
-			link.setCapacity(capacity);
-			link.setNumberOfLanes(numLanes);
-			network.addLink(link);
-			// Change the linktype to pt
-			Set<String> modes = new HashSet<String>();
-			modes.add(TransportMode.pt);
-			link.setAllowedModes(modes);
-			// Backwards
-			Link link2 = network.getFactory().createLink(Id.create("dL2_" + toNodeId, Link.class), nodes.get(toNodeId), n);
-			link2.setLength(length);
-			link2.setFreespeed(1000);
-			link2.setCapacity(capacity);
-			link2.setNumberOfLanes(numLanes);
-			network.addLink(link2);
-			link2.setAllowedModes(modes);
-		}
-	}
+//	private void createDummyNodeAndLinks(Id<Node> toNodeId, double capacity,
+//			int numLanes, Network network, Map<Id<Node>, ? extends Node> nodes) {
+//		Id<Node> dummyId = Id.create("dN_" + toNodeId, Node.class);
+//		if(!(network.getNodes().containsKey(dummyId))){
+//			NodeImpl n = new NodeImpl(dummyId);
+//			n.setCoord(new Coord(nodes.get(toNodeId).getCoord().getX() + 1, nodes.get(toNodeId).getCoord().getY() + 1));
+//			network.addNode(n);
+//			double length = 50;
+//			Link link = network.getFactory().createLink(Id.create("dL1_" + toNodeId, Link.class), n, nodes.get(toNodeId));
+//			link.setLength(length);
+//			link.setFreespeed(1000);
+//			link.setCapacity(capacity);
+//			link.setNumberOfLanes(numLanes);
+//			network.addLink(link);
+//			// Change the linktype to pt
+//			Set<String> modes = new HashSet<String>();
+//			modes.add(TransportMode.pt);
+//			link.setAllowedModes(modes);
+//			// Backwards
+//			Link link2 = network.getFactory().createLink(Id.create("dL2_" + toNodeId, Link.class), nodes.get(toNodeId), n);
+//			link2.setLength(length);
+//			link2.setFreespeed(1000);
+//			link2.setCapacity(capacity);
+//			link2.setNumberOfLanes(numLanes);
+//			network.addLink(link2);
+//			link2.setAllowedModes(modes);
+//		}
+//	}
 
 //
 //	private void createTransitVehicles(){
@@ -781,50 +784,50 @@ public class GtfsConverter {
 //
 //
 //
-//	// OPTIONAL SHAPE STUFF
-//
-//	private void convertShapes(GtfsSource shapesSource){
-//		int shapeIdIndex = shapesSource.getContentIndex("shape_id");
-//		int shapeLatIndex = shapesSource.getContentIndex("shape_pt_lat");
-//		int shapeLonIndex = shapesSource.getContentIndex("shape_pt_lon");
-//		int shapeDistIndex = shapesSource.getContentIndex("shape_dist_traveled");
-//		if(shapeDistIndex<0){
-//			this.alternativeStationToShapeAssignment = true;
-//			System.out.println("Couldn't find the shape_dist_traveled field in shapes.txt. Now it uses the alternative station to shape assingment.");
+	// OPTIONAL SHAPE STUFF
+
+//	private void convertShapes(Map<String, Map<Integer, com.conveyal.gtfs.model.Shape>> shapes2){
+////		int shapeIdIndex = shapesSource.getContentIndex("shape_id");
+////		int shapeLatIndex = shapesSource.getContentIndex("shape_pt_lat");
+////		int shapeLonIndex = shapesSource.getContentIndex("shape_pt_lon");
+////		int shapeDistIndex = shapesSource.getContentIndex("shape_dist_traveled");
+//		for(Entry<String, Map<Integer, com.conveyal.gtfs.model.Shape>> entry: shapes2.entrySet()) {
+//        		Iterator<com.conveyal.gtfs.model.Shape> it = entry.getValue().values().iterator();
+//        		com.conveyal.gtfs.model.Shape shape = it.next();
+//        		
+//        		String oldShapeId = shape.shape_id;
+//        		List<String[]> shapes = new ArrayList<String[]>();
+//        		for(;it.hasNext();) {
+//        			String shapeId = shape.shape_id;
+//        			String shapeLat = String.valueOf(shape.shape_pt_lat);
+//        			String shapeLon = String.valueOf(shape.shape_pt_lon);
+//        			String shapeDist;
+//        			if(shape.shape_dist_traveled == Double.NaN){
+//        				shapeDist = "Alternative Station To Shape Assignment Is Used";
+//        			}else{
+//        				shapeDist = String.valueOf(shape.shape_dist_traveled);
+//        			}
+//        			if(oldShapeId.equals(shapeId)){
+//        				String[] params = new String[3];
+//        				params[0] = shapeDist;
+//        				params[1] = shapeLon;
+//        				params[2] = shapeLat;
+//        				shapes.add(params);
+//        			}else{
+//        				this.shapes.put(Id.create(oldShapeId, Shape.class), shapes);
+//        				oldShapeId = shapeId;
+//        				shapes = new ArrayList<String[]>();
+//        				String[] params = new String[3];
+//        				params[0] = shapeDist;
+//        				params[1] = shapeLon;
+//        				params[2] = shapeLat;
+//        				shapes.add(params);
+//        			}
+//        		}
+//        		this.shapes.put(Id.create(oldShapeId, Shape.class), shapes);
 //		}
-//		String[] firstEntry = shapesSource.getContent().get(0);
-//		String oldShapeId = firstEntry[shapeIdIndex];
-//		List<String[]> shapes = new ArrayList<String[]>();
-//		for(String[] entries: shapesSource.getContent()) {
-//			String shapeId = entries[shapeIdIndex];
-//			String shapeLat = entries[shapeLatIndex];
-//			String shapeLon = entries[shapeLonIndex];
-//			String shapeDist;
-//			if(alternativeStationToShapeAssignment){
-//				shapeDist = "Alternative Station To Shape Assignment Is Used";
-//			}else{
-//				shapeDist = entries[shapeDistIndex];
-//			}
-//			if(oldShapeId.equals(shapeId)){
-//				String[] params = new String[3];
-//				params[0] = shapeDist;
-//				params[1] = shapeLon;
-//				params[2] = shapeLat;
-//				shapes.add(params);
-//			}else{
-//				this.shapes.put(Id.create(oldShapeId, Shape.class), shapes);
-//				oldShapeId = shapeId;
-//				shapes = new ArrayList<String[]>();
-//				String[] params = new String[3];
-//				params[0] = shapeDist;
-//				params[1] = shapeLon;
-//				params[2] = shapeLat;
-//				shapes.add(params);
-//			}
-//		}
-//		this.shapes.put(Id.create(oldShapeId, Shape.class), shapes);
 //	}
-//
+
 //	private Map<Id<Link>,List<Coord>> assignShapesToLinks() {
 //		Map<Id<Link>,List<Coord>> result = new HashMap<>();
 //		Map<Id<Link>,String[]> linkIdInfos = null;
@@ -880,11 +883,11 @@ public class GtfsConverter {
 //		}
 //		return result;
 //	}
-//	
-//	private static class Shape {
-//		
-//	}
-//	
+	
+	private static class Shape {
+		
+	}
+	
 	private static class Trip {
 		
 	}
