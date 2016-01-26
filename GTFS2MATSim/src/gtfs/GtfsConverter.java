@@ -1,44 +1,23 @@
 package gtfs;
 
 
-import com.conveyal.gtfs.GTFSFeed;
-import com.conveyal.gtfs.model.CalendarDate;
-import com.conveyal.gtfs.model.Route;
-import com.conveyal.gtfs.model.Service;
-import com.conveyal.gtfs.model.Stop;
-import com.conveyal.gtfs.model.StopTime;
-
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentNavigableMap;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 //
 //import java.io.File;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-
-import org.mapdb.Fun.Tuple2;
 import java.util.Map;
-import java.util.Set;
+import java.util.concurrent.ConcurrentNavigableMap;
+
+import org.junit.Assert;
+import org.mapdb.Fun.Tuple2;
 //
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
-import org.matsim.api.core.v01.TransportMode;
-import org.matsim.api.core.v01.network.Link;
-import org.matsim.api.core.v01.network.Network;
-import org.matsim.api.core.v01.network.Node;
-import org.matsim.core.network.NodeImpl;
-import org.matsim.core.population.routes.LinkNetworkRouteFactory;
-import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.core.scenario.MutableScenario;
 import org.matsim.core.utils.geometry.CoordUtils;
 import org.matsim.core.utils.geometry.CoordinateTransformation;
@@ -50,12 +29,18 @@ import org.matsim.pt.transitSchedule.api.TransitRouteStop;
 import org.matsim.pt.transitSchedule.api.TransitSchedule;
 import org.matsim.pt.transitSchedule.api.TransitStopFacility;
 import org.matsim.vehicles.Vehicle;
-import org.matsim.vehicles.VehicleCapacity;
-import org.matsim.vehicles.VehicleType;
-//
+
+import com.conveyal.gtfs.GTFSFeed;
+import com.conveyal.gtfs.model.CalendarDate;
+import com.conveyal.gtfs.model.Frequency;
+import com.conveyal.gtfs.model.Route;
+import com.conveyal.gtfs.model.Service;
+import com.conveyal.gtfs.model.Stop;
+import com.conveyal.gtfs.model.StopTime;
+
 //import com.vividsolutions.jts.util.Assert;
-//
-//
+
+
 public class GtfsConverter {
     
     	private GTFSFeed feed;
@@ -65,23 +50,23 @@ public class GtfsConverter {
 	private Map<String,Integer> vehicleIdsAndTypes = new HashMap<String,Integer>();
 	private Map<Id<TransitLine>,Integer> lineToVehicleType = new HashMap<>();
 	private Map<Id<Trip>,Id<TransitRoute>> matsimRouteIdToGtfsTripIdAssignments = new HashMap<>();
-	private boolean createShapedNetwork = false;
+//	private boolean createShapedNetwork = false;
 //
 	private LocalDate date = LocalDate.now();
 //
 //
 	// Fields for shaped Network
 	// (TripId,ShapeId)
-	private Map<String,String> shapeIdToTripIdAssignments = new HashMap<String,String>();
+//	private Map<String,String> shapeIdToTripIdAssignments = new HashMap<String,String>();
 	// (LinkId,(TripId,FromShapeDist,ToShapeDist))
-	private Map<Id<Link>,String[]> shapedLinkIds = new HashMap<>();
+//	private Map<Id<Link>,String[]> shapedLinkIds = new HashMap<>();
 	// If there is no shape_dist_traveled field, try to identify the stations by its coordinates
 	// (LinkId,(TripId,FromCoordX, FromCoordY ,ToCoordX, ToCoordY)) - Both Coordinates as Strings and in Matsim-KS
-	private Map<Id<Link>,String[]> shapedLinkIdsCoordinate = new HashMap<>();
-	private boolean alternativeStationToShapeAssignment = false;
-	private double toleranceInM = 0;
+//	private Map<Id<Link>,String[]> shapedLinkIdsCoordinate = new HashMap<>();
+//	private boolean alternativeStationToShapeAssignment = false;
+//	private double toleranceInM = 0;
 //	// (ShapeId, (shapeDist, x, y))
-	private Map<Id<Shape>,List<String[]>> shapes = new HashMap<Id<Shape>,List<String[]>>();
+//	private Map<Id<Shape>,List<String[]>> shapes = new HashMap<Id<Shape>,List<String[]>>();
 //
 //
 //
@@ -200,9 +185,7 @@ public class GtfsConverter {
 		this.convertSchedules(this.feed.stop_times, tripToRoute/*, tripRoute*/);
 
 //		// If you use the optional frequencies.txt, it will be transformed here
-//		if((new File(frequenciesFilename)).exists()){
-//			this.convertFrequencies(frequenciesSource, tripToRoute, usedTripIds);
-//		}
+		this.convertFrequencies(this.feed.frequencies, tripToRoute, usedTripIds);
 //
 //		this.createTransitVehicles();
 //
@@ -218,10 +201,10 @@ public class GtfsConverter {
 			if (usedServiceIds.contains(trip.service.service_id)) {
 				usedTripIds.add(Id.create(trip.trip_id, Trip.class));
 			}
-			if (trip.shape_id != null) {
-				String shapeId = trip.shape_id;
-				this.shapeIdToTripIdAssignments.put(trip.trip_id, shapeId);
-			}
+//			if (trip.shape_id != null) {
+//				String shapeId = trip.shape_id;
+//				this.shapeIdToTripIdAssignments.put(trip.trip_id, shapeId);
+//			}
 			if(trip.trip_headsign!=null){
 				String headsign = trip.trip_headsign;
 				String oldId = trip.trip_id;
@@ -302,64 +285,60 @@ public class GtfsConverter {
 		}
 		return serviceIds;
 	}
-//
-//	private void convertFrequencies(GtfsSource frequenciesSource, Map<Id<Trip>, Id<TransitLine>> routeToTripAssignments, List<Id<Trip>> usedTripIds) {
-//		int tripIdIndex = frequenciesSource.getContentIndex("trip_id");
-//		int startTimeIndex = frequenciesSource.getContentIndex("start_time");
-//		int endTimeIndex = frequenciesSource.getContentIndex("end_time");
-//		int stepIndex = frequenciesSource.getContentIndex("headway_secs");
-//		int departureCounter = 2;
-//		String oldTripId = "";
-//		for(String[] entries: frequenciesSource.getContent()){
-//			Id<Trip> tripId = Id.create(entries[tripIdIndex], Trip.class);
-//			double startTime = Time.parseTime(entries[startTimeIndex].trim());
-//			double endTime = Time.parseTime(entries[endTimeIndex].trim());
-//			double step = Double.parseDouble(entries[stepIndex]);
-//			// ---
-//			final Id<TransitLine> key = routeToTripAssignments.get(tripId);
-//			Assert.assertNotNull(key);
-//			final Id<TransitRoute> key2 = this.matsimRouteIdToGtfsTripIdAssignments.get(tripId);
-//			Assert.assertNotNull(key2);
-//			final TransitLine transitLine = ts.getTransitLines().get(key);
-//			Assert.assertNotNull( transitLine );
-//			final TransitRoute transitRoute = transitLine.getRoutes().get(key2);
-//			if ( transitRoute==null ) {
-//				for ( Id<TransitRoute> key3 : transitLine.getRoutes().keySet() ) {
-//					System.err.println(  key3 ) ;
-//				}
-//				System.err.println( "key=" + key ) ;
-//				System.err.println( "key2=" + key2 ) ;
-//				System.err.println( "transitLine=" + transitLine ) ;
-//				System.err.println("does not exist; skipping ...") ;
-//				continue ;
-//			}
-//			// ---
-//			if((!(entries[tripIdIndex].equals(oldTripId))) && (usedTripIds.contains(tripId))){
-//				departureCounter = transitRoute.getDepartures().size();
-//			}
-//			if(usedTripIds.contains(tripId)){
-//				Map<Id<Departure>, Departure> depatures = transitRoute.getDepartures();
-//				double latestDeparture = 0;
-//				for(Departure d: depatures.values()){
-//					if(latestDeparture < d.getDepartureTime()){
-//						latestDeparture = d.getDepartureTime();
-//					}
-//				}
-//				double time = latestDeparture + step;				
-//				do{
-//					if(time>startTime){
-//						Departure d = ts.getFactory().createDeparture(Id.create(tripId.toString() + "." + departureCounter, Departure.class), time);
-//						d.setVehicleId(Id.create(tripId.toString() + "." + departureCounter, Vehicle.class));
-//						this.vehicleIdsAndTypes.put(tripId.toString() + "." + departureCounter,this.lineToVehicleType.get(key));
-//						transitRoute.addDeparture(d);
-//						departureCounter++;
-//					}						
-//					time = time + step;
-//				}while(time <= endTime);		
-//			}
-//			oldTripId = entries[tripIdIndex];
-//		}
-//	}
+
+	private void convertFrequencies(Map<String, Frequency> frequencies, Map<Id<Trip>, Id<TransitLine>> tripToRoute, List<Id<Trip>> usedTripIds) {
+		int departureCounter = 2;
+		String oldTripId = "";
+		for(Frequency frequency: frequencies.values()){
+			Id<Trip> tripId = Id.create(frequency.trip.trip_id, Trip.class);
+			double startTime = Time.parseTime(String.valueOf(frequency.start_time));
+			double endTime = Time.parseTime(String.valueOf(frequency.end_time));
+			double step = Double.parseDouble(String.valueOf(frequency.headway_secs));
+			// ---
+			final Id<TransitLine> key = tripToRoute.get(tripId);
+			Assert.assertNotNull(key);
+			final Id<TransitRoute> key2 = this.matsimRouteIdToGtfsTripIdAssignments.get(tripId);
+			Assert.assertNotNull(key2);
+			final TransitLine transitLine = ts.getTransitLines().get(key);
+			Assert.assertNotNull( transitLine );
+			final TransitRoute transitRoute = transitLine.getRoutes().get(key2);
+			if ( transitRoute==null ) {
+				for ( Id<TransitRoute> key3 : transitLine.getRoutes().keySet() ) {
+					System.err.println(  key3 ) ;
+				}
+				System.err.println( "key=" + key ) ;
+				System.err.println( "key2=" + key2 ) ;
+				System.err.println( "transitLine=" + transitLine ) ;
+				System.err.println("does not exist; skipping ...") ;
+				continue ;
+			}
+			// ---
+			if((!(frequency.trip.trip_id.equals(oldTripId))) && (usedTripIds.contains(tripId))){
+				departureCounter = transitRoute.getDepartures().size();
+			}
+			if(usedTripIds.contains(tripId)){
+				Map<Id<Departure>, Departure> depatures = transitRoute.getDepartures();
+				double latestDeparture = 0;
+				for(Departure d: depatures.values()){
+					if(latestDeparture < d.getDepartureTime()){
+						latestDeparture = d.getDepartureTime();
+					}
+				}
+				double time = latestDeparture + step;				
+				do{
+					if(time>startTime){
+						Departure d = ts.getFactory().createDeparture(Id.create(tripId.toString() + "." + departureCounter, Departure.class), time);
+						d.setVehicleId(Id.create(tripId.toString() + "." + departureCounter, Vehicle.class));
+						this.vehicleIdsAndTypes.put(tripId.toString() + "." + departureCounter,this.lineToVehicleType.get(key));
+						transitRoute.addDeparture(d);
+						departureCounter++;
+					}						
+					time = time + step;
+				}while(time <= endTime);		
+			}
+			oldTripId = frequency.trip.trip_id;
+		}
+	}
 
 
 	private void convertSchedules(ConcurrentNavigableMap<Tuple2, StopTime> stop_times, Map<Id<Trip>, Id<TransitLine>> routeToTripAssignments){
