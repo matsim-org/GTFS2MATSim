@@ -16,28 +16,28 @@ public class RunGTFS2MATSim {
      * 
      * @author NKuehnel
      * @param filePath
-     *            the path to GTFS file as .zip
+     *            [0] the path to GTFS file as .zip [1] the path the transit schedule should be written to. can be empty
      */
     public static void main(String[] filePath) {
 
 	if (filePath != null && filePath.length > 0) {
-	    GTFSFeed feed = GTFSFeed.fromFile(filePath[0]);
+	    	GTFSFeed feed = GTFSFeed.fromFile(filePath[0]);
 	    
-	    System.out.println("Parsed trips: "+feed.trips.size());
-	    System.out.println("Parsed routes: "+feed.routes.size());
-	    System.out.println("Parsed stops: "+feed.stops.size());
+	    	System.out.println("Parsed trips: "+feed.trips.size());
+	    	System.out.println("Parsed routes: "+feed.routes.size());
+	    	System.out.println("Parsed stops: "+feed.stops.size());
 	    
-	    CoordinateTransformation coordinateTransformation = TransformationFactory.getCoordinateTransformation(TransformationFactory.WGS84, TransformationFactory.WGS84);
-	    Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
-	    GtfsConverter converter = new GtfsConverter(feed, scenario, coordinateTransformation);
-	    converter.convert();
+	    	CoordinateTransformation coordinateTransformation = TransformationFactory.getCoordinateTransformation(TransformationFactory.WGS84, TransformationFactory.WGS84);
+	    	Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
+	    	GtfsConverter converter = new GtfsConverter(feed, scenario, coordinateTransformation);
+	    	converter.convert();
 	    
-	    System.out.println("Converted stops: " + scenario.getTransitSchedule().getFacilities().size());
+	    	System.out.println("Converted stops: " + scenario.getTransitSchedule().getFacilities().size());
 	    
-	    if(filePath.length>1) {
-		TransitScheduleWriter writer = new TransitScheduleWriter(scenario.getTransitSchedule());
-		writer.writeFile(filePath[1]);
-	    }
+	    	if(filePath.length>1) {
+	    	    TransitScheduleWriter writer = new TransitScheduleWriter(scenario.getTransitSchedule());
+	    	    writer.writeFile(filePath[1]);
+	    	}
 	}
 	
 	
