@@ -26,8 +26,17 @@ public class RunGTFS2MATSim {
 	    	System.out.println("Parsed trips: "+feed.trips.size());
 	    	System.out.println("Parsed routes: "+feed.routes.size());
 	    	System.out.println("Parsed stops: "+feed.stops.size());
+	    	
+	    	String from;
+	    	String to;
+	    	if(filePath.length>3) {
+	    	    from = filePath[2];
+	    	    to = filePath[3];
+	    	} else {
+	    	    from = to = TransformationFactory.WGS84;
+	    	}
 	    
-	    	CoordinateTransformation coordinateTransformation = TransformationFactory.getCoordinateTransformation(TransformationFactory.WGS84, TransformationFactory.WGS84);
+	    	CoordinateTransformation coordinateTransformation = TransformationFactory.getCoordinateTransformation(from, to);
 	    	Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
 	    	GtfsConverter converter = new GtfsConverter(feed, scenario, coordinateTransformation);
 	    	converter.convert();
