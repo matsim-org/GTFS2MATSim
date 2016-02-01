@@ -1,6 +1,5 @@
 package gtfs;
 
-
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,7 +11,6 @@ import java.util.concurrent.ConcurrentNavigableMap;
 
 import org.junit.Assert;
 import org.mapdb.Fun.Tuple2;
-//
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
@@ -38,10 +36,9 @@ import com.conveyal.gtfs.model.Service;
 import com.conveyal.gtfs.model.Stop;
 import com.conveyal.gtfs.model.StopTime;
 
-
-
 public class GtfsConverter {
     
+    	private Map<Id<TransitRoute>, Id<TransitRoute>> consolidatedRoutes = new HashMap<>();
     	private GTFSFeed feed;
 	private CoordinateTransformation transform;
 	private MutableScenario scenario;
@@ -70,7 +67,7 @@ public class GtfsConverter {
 		// Get the Routenames and the assigned Trips
 		Map<Id<Trip>, Id<TransitLine>> gtfsRouteToMatsimLineID = getMatsimLineIds(this.feed.routes);
 
-		Map<Id<Trip>,Id<TransitLine>> tripToRoute = getTripToRouteMap(this.feed.trips,gtfsRouteToMatsimLineID);
+		Map<Id<Trip>,Id<TransitLine>> tripToLine = getTripToLineMap(this.feed.trips,gtfsRouteToMatsimLineID);
 
 		// Create Transitlines
 		this.createTransitLines(gtfsRouteToMatsimLineID);
@@ -98,10 +95,10 @@ public class GtfsConverter {
 
 //		 Convert the schedules for the trips
 		System.out.println("Convert the schedules");
-		this.convertSchedules(this.feed.stop_times, tripToRoute/*, tripRoute*/);
+		this.convertSchedules(this.feed.stop_times, tripToLine/*, tripRoute*/);
 
 		// If you use the optional frequencies.txt, it will be transformed here
-		this.convertFrequencies(this.feed.frequencies, tripToRoute, usedTripIds);
+		this.convertFrequencies(this.feed.frequencies, tripToLine, usedTripIds);
 
 		this.createTransitVehicles();
 
@@ -146,12 +143,12 @@ public class GtfsConverter {
 	}
 	
 	
-	private Map<Id<Trip>,Id<TransitLine>> getTripToRouteMap(Map<String, com.conveyal.gtfs.model.Trip> trips, Map<Id<Trip>, Id<TransitLine>> gtfsToMatsimRouteIdAssingments){
-		Map<Id<Trip>,Id<TransitLine>> routeTripAssignment = new HashMap<>();
+	private Map<Id<Trip>,Id<TransitLine>> getTripToLineMap(Map<String, com.conveyal.gtfs.model.Trip> trips, Map<Id<Trip>, Id<TransitLine>> gtfsRouteToMatsimLineID){
+		Map<Id<Trip>,Id<TransitLine>> tripLineAssignment = new HashMap<>();
 		for(com.conveyal.gtfs.model.Trip trip: trips.values()) {
-			routeTripAssignment.put(Id.create(trip.trip_id, Trip.class), gtfsToMatsimRouteIdAssingments.get(Id.create(trip.route.route_id, Trip.class)));				
+			tripLineAssignment.put(Id.create(trip.trip_id, Trip.class), gtfsRouteToMatsimLineID.get(Id.create(trip.route.route_id, Trip.class)));				
 		}
-		return routeTripAssignment;		
+		return tripLineAssignment;		
 	}
 
 	
@@ -220,7 +217,7 @@ public class GtfsConverter {
 	}
 	
 	
-	private void convertSchedules(ConcurrentNavigableMap<Tuple2, StopTime> stop_times, Map<Id<Trip>, Id<TransitLine>> routeToTripAssignments){
+	private void convertSchedules(ConcurrentNavigableMap<Tuple2, StopTime> stop_times, Map<Id<Trip>, Id<TransitLine>> tripToLineAssignments){
 		List<TransitRouteStop> stops = new LinkedList<TransitRouteStop>();
 		Iterator<StopTime> it = stop_times.values().iterator();
 		StopTime stopTime = it.next();
@@ -229,7 +226,7 @@ public class GtfsConverter {
 		Departure departure = ts.getFactory().createDeparture(Id.create(currentTrip, Departure.class), departureTime);
 		String vehicleId = stopTime.trip_id;
 		departure.setVehicleId(Id.create(vehicleId, Vehicle.class));		
-		this.vehicleIdsAndTypes.put(vehicleId,lineToVehicleType.get(routeToTripAssignments.get(Id.create(stopTime.trip_id, Trip.class))));
+		this.vehicleIdsAndTypes.put(vehicleId,lineToVehicleType.get(tripToLineAssignments.get(Id.create(stopTime.trip_id, Trip.class))));
 		int nRows = stop_times.values().size();
 		int nRow = 1;
 		for(;it.hasNext();) {
@@ -245,7 +242,7 @@ public class GtfsConverter {
 			}else{
 				//finish old route
 				stops = this.interpolateMissingDepartures(stops);
-				TransitLine tl = ts.getTransitLines().get(routeToTripAssignments.get(currentTripId));
+				TransitLine tl = ts.getTransitLines().get(tripToLineAssignments.get(currentTripId));
 				Id<TransitRoute> routeId = this.matsimRouteIdToGtfsTripIdAssignments.get(currentTripId);
 				TransitRoute tr = findOrAddTransitRoute(tl, stops,  /*networkRoute,*/ routeId);
 				tr.addDeparture(departure);
@@ -255,7 +252,7 @@ public class GtfsConverter {
 				departure = ts.getFactory().createDeparture(Id.create(stopTime.trip_id, Departure.class), departureTime);
 				vehicleId = tripId.toString();
 				departure.setVehicleId(Id.create(vehicleId, Vehicle.class));
-				this.vehicleIdsAndTypes.put(vehicleId,lineToVehicleType.get(routeToTripAssignments.get(tripId)));												
+				this.vehicleIdsAndTypes.put(vehicleId,lineToVehicleType.get(tripToLineAssignments.get(tripId)));												
 				TransitStopFacility stop = ts.getFacilities().get(stopId);
 				TransitRouteStop routeStop = ts.getFactory().createTransitRouteStop(stop, 0, Time.parseTime(String.valueOf(stopTime.departure_time))-departureTime);
 				stops.add(routeStop);
@@ -266,7 +263,7 @@ public class GtfsConverter {
 		Id<Trip> currentTripId = Id.create(currentTrip, Trip.class);
 		//finish old route
 		stops = this.interpolateMissingDepartures(stops);
-		TransitLine tl = ts.getTransitLines().get(routeToTripAssignments.get(currentTripId));
+		TransitLine tl = ts.getTransitLines().get(tripToLineAssignments.get(currentTripId));
 		Id<TransitRoute> routeId = this.matsimRouteIdToGtfsTripIdAssignments.get(currentTripId);
 		TransitRoute tr = findOrAddTransitRoute(tl, stops,  /*networkRoute,*/ routeId);
 		tr.addDeparture(departure);
@@ -336,7 +333,11 @@ public class GtfsConverter {
 			// ---
 			final Id<TransitLine> key = tripToRoute.get(tripId);
 			Assert.assertNotNull(key);
-			final Id<TransitRoute> key2 = this.matsimRouteIdToGtfsTripIdAssignments.get(tripId);
+			Id<TransitRoute> key2 = this.matsimRouteIdToGtfsTripIdAssignments.get(tripId);
+			if(consolidatedRoutes.containsKey(key2)) {
+			    System.out.println("used consolidated route.");
+			    key2 = consolidatedRoutes.get(key2);
+			}
 			Assert.assertNotNull(key2);
 			final TransitLine transitLine = ts.getTransitLines().get(key);
 			Assert.assertNotNull( transitLine );
@@ -351,7 +352,6 @@ public class GtfsConverter {
 				System.err.println("does not exist; skipping ...") ;
 				continue ;
 			}
-			// ---
 			if((!(frequency.trip.trip_id.equals(oldTripId))) && (usedTripIds.contains(tripId))){
 				departureCounter = transitRoute.getDepartures().size();
 			}
@@ -430,7 +430,8 @@ public class GtfsConverter {
 	private TransitRoute findOrAddTransitRoute(TransitLine tl, List<TransitRouteStop> stops,  Id<TransitRoute> routeId) {
 		for (TransitRoute tr : tl.getRoutes().values()) {
 			if (tr.getStops().equals(stops)) {
-				System.out.println("Saved a route.");
+				System.out.println("Consolidated route " + routeId + "into " + tr.getId());
+				consolidatedRoutes.put(routeId, tr.getId());
 				return tr;
 			} 
 		}
@@ -438,7 +439,7 @@ public class GtfsConverter {
 		tl.addRoute(tr);
 		return tr;
 	}
-
+	
 	
 	private static class Trip {
 		
