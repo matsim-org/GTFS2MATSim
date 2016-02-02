@@ -110,8 +110,7 @@ public class GtfsConverter {
 	
 	
 	/**
-	 * Problem: Will also generate stops, and links for stops, which are disconnected from the network because
-	 * they are not used by any line. These will have an invalid link reference. :(
+	 * 
 	 * @param stops 
 	 */
 	private void convertStops(Map<String, Stop> stops ){
