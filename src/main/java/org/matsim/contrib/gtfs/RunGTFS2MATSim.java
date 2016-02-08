@@ -59,6 +59,8 @@ public class RunGTFS2MATSim {
 
 	public static void main(String[] args) {
 		convertGtfs("output/swu.zip", "output/transitSchedule.xml", LocalDate.of(2013,12,15), new IdentityTransformation());
+//		convertGtfs("/Users/michaelzilske/shared-svn/studies/countries/cl/santiago_pt_demand_matrix/gtfs_201306/gtfs_201306.zip", "output/transitSchedule.xml", LocalDate.of(2013,6,1), new IdentityTransformation());
+
 	}
 
 }
