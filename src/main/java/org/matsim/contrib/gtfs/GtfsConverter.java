@@ -8,14 +8,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentNavigableMap;
-import java.util.function.Consumer;
 
+import com.conveyal.gtfs.model.*;
 import org.mapdb.Fun.Tuple2;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.core.scenario.MutableScenario;
-import org.matsim.core.utils.geometry.CoordUtils;
 import org.matsim.core.utils.geometry.CoordinateTransformation;
 import org.matsim.core.utils.misc.Time;
 import org.matsim.pt.transitSchedule.api.Departure;
@@ -29,11 +28,6 @@ import org.matsim.vehicles.VehicleCapacity;
 import org.matsim.vehicles.VehicleType;
 
 import com.conveyal.gtfs.GTFSFeed;
-import com.conveyal.gtfs.model.Frequency;
-import com.conveyal.gtfs.model.Route;
-import com.conveyal.gtfs.model.Service;
-import com.conveyal.gtfs.model.Stop;
-import com.conveyal.gtfs.model.StopTime;
 
 public class GtfsConverter {
     
@@ -79,14 +73,12 @@ public class GtfsConverter {
 		});
 
 		// Get the used service Id for the chosen weekday and date
-		List<String> activeServiceIds = new ArrayList<>();
-		activeServiceIds.addAll(this.getActiveServiceIds(this.feed.services));
-
-		System.out.println("Active Services: " + activeServiceIds);
+		List<String> activeServiceIds = this.getActiveServiceIds(this.feed.services);
+		System.out.printf("Active Services: %d %s\n", activeServiceIds.size(), activeServiceIds);
 
 		// Get the TripIds, which are available for the serviceIds
-		List<Id<Trip>> activeTripIds = this.getActiveTripIds(this.feed.trips, activeServiceIds);
-		System.out.println("Active trips: " + activeTripIds);
+		List<Trip> activeTripIds = this.getActiveTripIds(this.feed.trips);
+		System.out.printf("Active trips: %d %s\n", activeTripIds.size(), activeTripIds);
 
 
 //		 Convert the schedules for the trips
@@ -163,11 +155,11 @@ public class GtfsConverter {
 	}
 
 
-	private List<Id<Trip>> getActiveTripIds(Map<String, com.conveyal.gtfs.model.Trip> trips, List<String> usedServiceIds) {
-		List<Id<Trip>> usedTripIds = new ArrayList<>();
+	private List<com.conveyal.gtfs.model.Trip> getActiveTripIds(Map<String, com.conveyal.gtfs.model.Trip> trips) {
+		List<com.conveyal.gtfs.model.Trip> usedTripIds = new ArrayList<>();
 		for (com.conveyal.gtfs.model.Trip trip: trips.values()) {
-			if (usedServiceIds.contains(trip.service.service_id)) {
-				usedTripIds.add(Id.create(trip.trip_id, Trip.class));
+			if (trip.service.activeOn(this.date)) {
+				usedTripIds.add(trip);
 			}
 			if(trip.trip_headsign!=null){
 				String headsign = trip.trip_headsign;
@@ -177,7 +169,7 @@ public class GtfsConverter {
 				this.matsimRouteIdToGtfsTripIdAssignments.put(Id.create(trip.trip_id, Trip.class), Id.create(oldId + "_" + headsign, TransitRoute.class));
 			}else{
 				this.matsimRouteIdToGtfsTripIdAssignments.put(Id.create(trip.trip_id, Trip.class), Id.create(trip.trip_id, TransitRoute.class));
-			} 							
+			}
 		}
 		return usedTripIds;
 	}
@@ -234,7 +226,7 @@ public class GtfsConverter {
 	}
 
 
-	private void convertFrequencies(Map<String, Frequency> frequencies, Map<Id<Trip>, Id<TransitLine>> tripToRoute, List<Id<Trip>> usedTripIds) {
+	private void convertFrequencies(Map<String, Frequency> frequencies, Map<Id<Trip>, Id<TransitLine>> tripToRoute, List<Trip> usedTripIds) {
 		int departureCounter = 2;
 		String oldTripId = "";
 		for(Frequency frequency: frequencies.values()){
@@ -348,7 +340,7 @@ public class GtfsConverter {
 	private TransitRoute findOrAddTransitRoute(TransitLine tl, List<TransitRouteStop> stops,  Id<TransitRoute> routeId) {
 		for (TransitRoute tr : tl.getRoutes().values()) {
 			if (tr.getStops().equals(stops)) {
-				System.out.println("Consolidated route " + routeId + "into " + tr.getId());
+//				System.out.println("Consolidated route " + routeId + "into " + tr.getId());
 				consolidatedRoutes.put(routeId, tr.getId());
 				return tr;
 			} 
@@ -358,8 +350,4 @@ public class GtfsConverter {
 		return tr;
 	}
 	
-	
-	private static class Trip {
-		
-	}
 }
