@@ -8,6 +8,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.function.Consumer;
 
 import org.mapdb.Fun.Tuple2;
 import org.matsim.api.core.v01.Coord;
@@ -28,7 +29,6 @@ import org.matsim.vehicles.VehicleCapacity;
 import org.matsim.vehicles.VehicleType;
 
 import com.conveyal.gtfs.GTFSFeed;
-import com.conveyal.gtfs.model.CalendarDate;
 import com.conveyal.gtfs.model.Frequency;
 import com.conveyal.gtfs.model.Route;
 import com.conveyal.gtfs.model.Service;
@@ -71,47 +71,40 @@ public class GtfsConverter {
 		// Create Transitlines
 		this.createTransitLines(gtfsRouteToMatsimLineID);
 
-		// Get the used service Id for the choosen weekday and date
-		List<String> usedServiceIds = new ArrayList<String>();
-		usedServiceIds.addAll(this.getUsedServiceIds(this.feed.services));
-		
-		for(String serviceId: this.getUsedServiceIdsForSpecialDates(this.feed.services)){
-			if(serviceId.charAt(0) == '+'){
-				usedServiceIds.add(serviceId.substring(1));
-			}else{
-				if(usedServiceIds.contains(serviceId.substring(1))){
-					usedServiceIds.remove(serviceId.substring(1));
-				}
-			}
-		}
-				
-		System.out.println("Reading of ServiceIds succesfull: " + usedServiceIds);
+		this.feed.services.values().stream().flatMap(service -> service.calendar_dates.keySet().stream()).min(LocalDate::compareTo).ifPresent(startDate -> {
+			System.out.println("Earliest service date: "+startDate);
+		});
+		this.feed.services.values().stream().flatMap(service -> service.calendar_dates.keySet().stream()).max(LocalDate::compareTo).ifPresent(endDate -> {
+			System.out.println("Latest service date: " + endDate);
+		});
+
+		// Get the used service Id for the chosen weekday and date
+		List<String> activeServiceIds = new ArrayList<>();
+		activeServiceIds.addAll(this.getActiveServiceIds(this.feed.services));
+
+		System.out.println("Active Services: " + activeServiceIds);
 
 		// Get the TripIds, which are available for the serviceIds
-		List<Id<Trip>> usedTripIds = this.getUsedTripIds(this.feed.trips, usedServiceIds);
-		System.out.println("Reading of TripIds succesfull: " + usedTripIds);
+		List<Id<Trip>> activeTripIds = this.getActiveTripIds(this.feed.trips, activeServiceIds);
+		System.out.println("Active trips: " + activeTripIds);
 
 
 //		 Convert the schedules for the trips
 		System.out.println("Convert the schedules");
-		this.convertSchedules(this.feed.stop_times, tripToLine/*, tripRoute*/);
+		this.convertStopTimes(this.feed.stop_times, tripToLine/*, tripRoute*/);
 
 		// If you use the optional frequencies.txt, it will be transformed here
-		this.convertFrequencies(this.feed.frequencies, tripToLine, usedTripIds);
+		this.convertFrequencies(this.feed.frequencies, tripToLine, activeTripIds);
 
 		this.createTransitVehicles();
 
-		if(usedTripIds.isEmpty()){
+		if(activeTripIds.isEmpty()){
 			System.out.println("There are no converted trips. You might need to change the date for better results.");
 		}
 		System.out.println("Conversion successfull");
 	}
 	
 	
-	/**
-	 * 
-	 * @param stops 
-	 */
 	private void convertStops(Map<String, Stop> stops ){
 		for(Stop stop: stops.values()){
 			TransitStopFacility t = this.ts.getFactory().createTransitStopFacility(Id.create(stop.stop_id, TransitStopFacility.class), transform.transform(new Coord(stop.stop_lon, stop.stop_lat)), false);
@@ -158,44 +151,19 @@ public class GtfsConverter {
 	}
 	
 	
-	private List<String> getUsedServiceIds(Map<String, Service> services) {
+	private List<String> getActiveServiceIds(Map<String, Service> services) {
 		List<String> serviceIds = new ArrayList<String>();
 		System.out.println("Used Date for active schedules: " + this.date.toString() + " (weekday: " + date.getDayOfWeek().toString() + "). If you want to choose another date, please specify it, before running the converter");
 		for(Service service: services.values()){
-			if(this.date != null){
-        			if(service.activeOn(date)){
-        				serviceIds.add(service.service_id);
-        			}
+			if(service.activeOn(date)){
+				serviceIds.add(service.service_id);
 			}
 		}
 		return serviceIds;
 	}
-	
-	
-	private List<String> getUsedServiceIdsForSpecialDates(Map<String, Service> services){
-	    	System.out.println("Used Date for active schedules: " + this.date + ". If you want to choose another date, please specify it, before running the converter");
-		List<String> serviceIds = new ArrayList<String>();
-		for (Service service: services.values()) {
-		    	for(CalendarDate calendarDate: service.calendar_dates.values()) {
-        			String serviceId = service.service_id;
-        			LocalDate exceptionDate = calendarDate.date;
-        			int exceptionType = calendarDate.exception_type;
-        			if (this.date != null) {
-                			if (exceptionDate.equals(this.date)) {
-                				if (exceptionType == 1) {
-                					serviceIds.add("+" + serviceId);
-                				} else {
-                					serviceIds.add("-" + serviceId);
-                				}
-                			}
-        			}
-		    	}
-		}
-		return serviceIds;
-	}
-	
-	
-	private List<Id<Trip>> getUsedTripIds(Map<String, com.conveyal.gtfs.model.Trip> trips, List<String> usedServiceIds) {
+
+
+	private List<Id<Trip>> getActiveTripIds(Map<String, com.conveyal.gtfs.model.Trip> trips, List<String> usedServiceIds) {
 		List<Id<Trip>> usedTripIds = new ArrayList<>();
 		for (com.conveyal.gtfs.model.Trip trip: trips.values()) {
 			if (usedServiceIds.contains(trip.service.service_id)) {
@@ -215,7 +183,7 @@ public class GtfsConverter {
 	}
 	
 	
-	private void convertSchedules(ConcurrentNavigableMap<Tuple2, StopTime> stop_times, Map<Id<Trip>, Id<TransitLine>> tripToLineAssignments){
+	private void convertStopTimes(ConcurrentNavigableMap<Tuple2, StopTime> stop_times, Map<Id<Trip>, Id<TransitLine>> tripToLineAssignments){
 		List<TransitRouteStop> stops = new LinkedList<TransitRouteStop>();
 		Iterator<StopTime> it = stop_times.values().iterator();
 		StopTime stopTime = it.next();
@@ -229,7 +197,7 @@ public class GtfsConverter {
 		int nRow = 1;
 		for(;it.hasNext();) {
 		    	stopTime = it.next();
-			System.out.println(nRow++ + "/" + nRows);
+//			System.out.println(nRow++ + "/" + nRows);
 			Id<Trip> currentTripId = Id.create(currentTrip, Trip.class);
 			Id<Trip> tripId = Id.create(stopTime.trip_id, Trip.class);
 			Id<TransitStopFacility> stopId = Id.create(stopTime.stop_id, TransitStopFacility.class);
@@ -239,7 +207,6 @@ public class GtfsConverter {
 				stops.add(routeStop);	
 			}else{
 				//finish old route
-				stops = this.interpolateMissingDepartures(stops);
 				TransitLine tl = ts.getTransitLines().get(tripToLineAssignments.get(currentTripId));
 				Id<TransitRoute> routeId = this.matsimRouteIdToGtfsTripIdAssignments.get(currentTripId);
 				TransitRoute tr = findOrAddTransitRoute(tl, stops,  /*networkRoute,*/ routeId);
@@ -260,65 +227,12 @@ public class GtfsConverter {
 		// The last trip of the file was not added, so it needs to be added now
 		Id<Trip> currentTripId = Id.create(currentTrip, Trip.class);
 		//finish old route
-		stops = this.interpolateMissingDepartures(stops);
 		TransitLine tl = ts.getTransitLines().get(tripToLineAssignments.get(currentTripId));
 		Id<TransitRoute> routeId = this.matsimRouteIdToGtfsTripIdAssignments.get(currentTripId);
 		TransitRoute tr = findOrAddTransitRoute(tl, stops,  /*networkRoute,*/ routeId);
 		tr.addDeparture(departure);
 	}
-	
-	
-	/**
-	 * Beats me how this works. michaz '13
-	 * @param stops
-	 * @return
-	 */
-	private List<TransitRouteStop> interpolateMissingDepartures(List<TransitRouteStop> stops) {
-		List<TransitRouteStop> result = new ArrayList<TransitRouteStop>();
-		List<TransitRouteStop> toBeInterpolated = new ArrayList<TransitRouteStop>();
-		Map<Integer,TransitRouteStop> toBeReplaced = new HashMap<Integer,TransitRouteStop>();
-		boolean properDeparture = true;
-		int lastProperDepartureIndex = 0;
-		for(Iterator<TransitRouteStop> it = stops.iterator(); it.hasNext(); ){
-			TransitRouteStop s = it.next();
-			if(Double.isInfinite(s.getDepartureOffset())){
-				toBeInterpolated.add(s);
-				properDeparture = false;
-			}else if(!properDeparture){
-				double totalLength = 0;
-				TransitRouteStop lastProperStop = stops.get(lastProperDepartureIndex);
-				for(TransitRouteStop sr: toBeInterpolated){
-					totalLength = CoordUtils.calcDistance(sr.getStopFacility().getCoord(), lastProperStop.getStopFacility().getCoord()) + totalLength;
-				}
-				totalLength = totalLength + CoordUtils.calcDistance(toBeInterpolated.get(toBeInterpolated.size()-1).getStopFacility().getCoord(), s.getStopFacility().getCoord());
-				double timeAvaible = s.getArrivalOffset() - lastProperStop.getDepartureOffset();
-				double oldDepartureOffset = lastProperStop.getDepartureOffset();
-				for(Iterator<TransitRouteStop> it2 = toBeInterpolated.iterator(); it2.hasNext();){
-					TransitRouteStop sr = it2.next();
-					double newDepartureOffset = (CoordUtils.calcDistance(sr.getStopFacility().getCoord(), lastProperStop.getStopFacility().getCoord()))/(totalLength) * timeAvaible + oldDepartureOffset;
-					oldDepartureOffset = newDepartureOffset;
-					TransitRouteStop newStop = ts.getFactory().createTransitRouteStop(sr.getStopFacility(), newDepartureOffset, newDepartureOffset);
-					toBeReplaced.put(stops.indexOf(sr), newStop);
-				}
-				toBeInterpolated = new ArrayList<TransitRouteStop>();
-				lastProperDepartureIndex = stops.indexOf(s);
-				properDeparture = true;
-			}else{
-				lastProperDepartureIndex = stops.indexOf(s);
-			}
-		}
-		for(TransitRouteStop s: stops){
-			if(toBeReplaced.containsKey(stops.indexOf(s))){
-				s.setAwaitDepartureTime(false);
-				result.add(toBeReplaced.get(stops.indexOf(s)));
-			}else{
-				s.setAwaitDepartureTime(true);
-				result.add(s);
-			}
-		}
-		return result;
-	}
-	
+
 
 	private void convertFrequencies(Map<String, Frequency> frequencies, Map<Id<Trip>, Id<TransitLine>> tripToRoute, List<Id<Trip>> usedTripIds) {
 		int departureCounter = 2;
