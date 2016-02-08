@@ -23,7 +23,7 @@ public class RunGTFS2MATSim {
      * @param fromFile path of input file
      * @param toFile path to write to
      * @param date date to check for transit data. if null, current date of system is used
-     * @param transformation coordination transformation for stops. if null, WGS84 is used 
+     * @param transformation coordination transformation for stops
 
      */
     public static void convertGtfs(String fromFile, String toFile, LocalDate date, CoordinateTransformation transformation) {
@@ -40,13 +40,8 @@ public class RunGTFS2MATSim {
 
 		Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
 
-		if(transformation == null) {
-			transformation = TransformationFactory.getCoordinateTransformation(TransformationFactory.WGS84, TransformationFactory.WGS84);
-		}
 		GtfsConverter converter = new GtfsConverter(feed, scenario, transformation);
-		if(date!=null) {
-			converter.setDate(date);
-		}
+		converter.setDate(date);
 		converter.convert();
 
 		System.out.println("Converted stops: " + scenario.getTransitSchedule().getFacilities().size());
@@ -54,13 +49,12 @@ public class RunGTFS2MATSim {
 		TransitScheduleWriter writer = new TransitScheduleWriter(scenario.getTransitSchedule());
 		writer.writeFile(toFile);
 
-		System.out.println("done");
+		System.out.println("Done.");
     }
 
 	public static void main(String[] args) {
-		convertGtfs("output/swu.zip", "output/transitSchedule.xml", LocalDate.of(2013,12,15), new IdentityTransformation());
-//		convertGtfs("/Users/michaelzilske/shared-svn/studies/countries/cl/santiago_pt_demand_matrix/gtfs_201306/gtfs_201306.zip", "output/transitSchedule.xml", LocalDate.of(2013,6,1), new IdentityTransformation());
-
+//		convertGtfs("output/swu.zip", "output/transitSchedule.xml", LocalDate.of(2013,12,15), new IdentityTransformation());
+		convertGtfs("/Users/michaelzilske/shared-svn/studies/countries/cl/santiago_pt_demand_matrix/gtfs_201306/gtfs_201306.zip", "output/transitSchedule.xml", LocalDate.of(2013,6,1), new IdentityTransformation());
 	}
 
 }
