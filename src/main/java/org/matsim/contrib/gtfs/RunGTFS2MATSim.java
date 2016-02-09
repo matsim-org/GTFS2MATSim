@@ -18,7 +18,7 @@ import com.conveyal.gtfs.GTFSFeed;
 public class RunGTFS2MATSim {
 
     /**
-     * Starts the conversion. If coord transformation is given, WGS84 is used as default.
+     * Starts the conversion.
      * 
      * @param fromFile path of input file
      * @param toFile path to write to
@@ -53,8 +53,10 @@ public class RunGTFS2MATSim {
     }
 
 	public static void main(String[] args) {
-//		convertGtfs("output/swu.zip", "output/transitSchedule.xml", LocalDate.of(2013,12,15), new IdentityTransformation());
-		convertGtfs("/Users/michaelzilske/shared-svn/studies/countries/cl/santiago_pt_demand_matrix/gtfs_201306/gtfs_201306.zip", "output/transitSchedule.xml", LocalDate.of(2013,6,1), new IdentityTransformation());
+		String inputZipFile = args[0];
+		String outputFile = args[1];
+		String date = args[2];
+		convertGtfs(inputZipFile, outputFile, LocalDate.parse(date), new IdentityTransformation());
 	}
 
 }

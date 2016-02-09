@@ -39,6 +39,7 @@ public class GtfsConverter {
 	public void setDate(LocalDate date) {
 		this.date = date;
 	}
+
 	public void convert(){
 
 		this.ts = scenario.getTransitSchedule();
@@ -112,7 +113,7 @@ public class GtfsConverter {
 					stops.add(routeStop);
 				}
 				TransitLine tl = ts.getTransitLines().get(Id.create(trip.route.route_id, TransitLine.class));
-				TransitRoute tr = findOrAddTransitRoute(tl, stops);
+				TransitRoute tr = findOrAddTransitRoute(tl, trip.route, stops);
 				Departure departure = ts.getFactory().createDeparture(Id.create(trip.trip_id, Departure.class), departureTime);
 				tr.addDeparture(departure);
 				scheduleDepartures++;
@@ -125,9 +126,9 @@ public class GtfsConverter {
 					stops.add(routeStop);
 				}
 				for (Frequency frequency : trip.frequencies) {
-					for (int time = frequency.start_time; time <= frequency.end_time; time += frequency.headway_secs) {
+					for (int time = frequency.start_time; time < frequency.end_time; time += frequency.headway_secs) {
 						TransitLine tl = ts.getTransitLines().get(Id.create(trip.route.route_id, TransitLine.class));
-						TransitRoute tr = findOrAddTransitRoute(tl, stops);
+						TransitRoute tr = findOrAddTransitRoute(tl, trip.route, stops);
 						Departure d = ts.getFactory().createDeparture(Id.create(trip.trip_id + "." + time, Departure.class), time);
 						tr.addDeparture(d);
 						frequencyDepartures++;
@@ -140,14 +141,15 @@ public class GtfsConverter {
 	}
 
 
-	private TransitRoute findOrAddTransitRoute(TransitLine tl, List<TransitRouteStop> stops) {
+	private TransitRoute findOrAddTransitRoute(TransitLine tl, Route route, List<TransitRouteStop> stops) {
 		for (TransitRoute tr : tl.getRoutes().values()) {
 			if (tr.getStops().equals(stops)) {
 				return tr;
 			} 
 		}
 		Id<TransitRoute> routeId = Id.create(tl.getId().toString() + "_" + tl.getRoutes().size(), TransitRoute.class);
-		TransitRoute tr = ts.getFactory().createTransitRoute(routeId, /*networkRoute*/ null, stops, "pt");
+
+		TransitRoute tr = ts.getFactory().createTransitRoute(routeId, /*networkRoute*/ null, stops, RouteType.values()[route.route_type].toString());
 		tl.addRoute(tr);
 		return tr;
 	}

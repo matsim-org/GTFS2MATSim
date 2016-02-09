@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE transitSchedule SYSTEM "http://www.matsim.org/files/dtd/transitSchedule_v1.dtd">
+
+<transitSchedule>
+	<transitStops>
+		<stopFacility id="TEST_STOP_1" x="-116.784582" y="36.868446" name="GTFS TEST STOP 1"/>
+		<stopFacility id="TEST_STOP_2" x="-116.751677" y="36.915682" name="GTFS TEST STOP 2"/>
+	</transitStops>
+	<transitLine id="TEST_ROUTE">
+		<transitRoute id="TEST_ROUTE_0">
+			<transportMode>bus</transportMode>
+			<routeProfile>
+				<stop refId="TEST_STOP_1" arrivalOffset="00:00:00" departureOffset="00:00:00"/>
+				<stop refId="TEST_STOP_2" arrivalOffset="00:35:00" departureOffset="00:35:00"/>
+			</routeProfile>
+			<departures>
+				<departure id="TEST_TRIP_WE.0" departureTime="06:10:00"/>
+				<departure id="TEST_TRIP_WE.1" departureTime="08:10:00"/>
+				<departure id="TEST_TRIP_WE.2" departureTime="10:10:00"/>
+				<departure id="TEST_TRIP_WE.3" departureTime="12:10:00"/>
+				<departure id="TEST_TRIP_WE.4" departureTime="14:10:00"/>
+				<departure id="TEST_TRIP_WE.5" departureTime="16:10:00"/>
+			</departures>
+		</transitRoute>
+		<transitRoute id="TEST_ROUTE_1">
+			<transportMode>bus</transportMode>
+			<routeProfile>
+				<stop refId="TEST_STOP_1" arrivalOffset="00:00:00" departureOffset="00:00:00"/>
+				<stop refId="TEST_STOP_2" arrivalOffset="00:20:00" departureOffset="00:20:00"/>
+			</routeProfile>
+			<departures>
+				<departure id="TEST_TRIP_WD.0" departureTime="06:00:00"/>
+				<departure id="TEST_TRIP_WD.1" departureTime="08:00:00"/>
+				<departure id="TEST_TRIP_WD.2" departureTime="09:00:00"/>
+				<departure id="TEST_TRIP_WD.3" departureTime="10:00:00"/>
+				<departure id="TEST_TRIP_WD.4" departureTime="11:00:00"/>
+				<departure id="TEST_TRIP_WD.5" departureTime="12:00:00"/>
+				<departure id="TEST_TRIP_WD.6" departureTime="13:00:00"/>
+				<departure id="TEST_TRIP_WD.7" departureTime="14:00:00"/>
+				<departure id="TEST_TRIP_WD.8" departureTime="15:00:00"/>
+				<departure id="TEST_TRIP_WD.9" departureTime="16:00:00"/>
+			</departures>
+		</transitRoute>
+	</transitLine>
+</transitSchedule>
