@@ -47,12 +47,26 @@ public class GtfsConverter {
 		// Put all stops in the Schedule
 		this.convertStops();
 
-		this.feed.services.values().stream().flatMap(service -> service.calendar_dates.keySet().stream()).min(LocalDate::compareTo).ifPresent(startDate -> {
+		int startDate = Integer.MAX_VALUE;
+		for(Service service: this.feed.services.values()) {
+		    if(service.calendar.start_date<startDate) {
+			startDate = service.calendar.start_date;
+		    }
+		}
+		
+		int endDate = Integer.MIN_VALUE;
+		for(Service service: this.feed.services.values()) {
+		    if(service.calendar.end_date>endDate) {
+			endDate = service.calendar.end_date;
+		    }
+		}
+		
+//		this.feed.services.values().stream().flatMapToInt(service -> service.calendar)).min(Integer::compareTo).ifPresent(startDate -> {
 			System.out.println("Earliest service date: "+startDate);
-		});
-		this.feed.services.values().stream().flatMap(service -> service.calendar_dates.keySet().stream()).max(LocalDate::compareTo).ifPresent(endDate -> {
+//		});
+//		this.feed.services.values().stream().flatMap(service -> service.calendar_dates.keySet().stream()).max(LocalDate::compareTo).ifPresent(endDate -> {
 			System.out.println("Latest service date: " + endDate);
-		});
+//		});
 
 		// Get the used service Id for the chosen weekday and date
 		List<String> activeServiceIds = this.getActiveServiceIds(this.feed.services);
