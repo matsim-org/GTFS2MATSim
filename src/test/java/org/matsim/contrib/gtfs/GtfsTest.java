@@ -9,6 +9,7 @@ import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.scenario.MutableScenario;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.geometry.transformations.IdentityTransformation;
+import org.matsim.pt.transitSchedule.api.TransitLine;
 import org.matsim.pt.transitSchedule.api.TransitRoute;
 import org.matsim.pt.transitSchedule.api.TransitRouteStop;
 import org.matsim.pt.transitSchedule.api.TransitSchedule;
@@ -65,5 +66,46 @@ public class GtfsTest  {
 			}
 		}
 	}
-
+	
+	@Test
+	public void testGoogleSample() {
+	    	Config config = ConfigUtils.createConfig();
+	        config.transit().setUseTransit(true);
+		MutableScenario scenarioWeekend = (MutableScenario) ScenarioUtils.createScenario(config);
+		MutableScenario scenarioWeekdays = (MutableScenario) ScenarioUtils.createScenario(config);
+		
+		//Saturday
+		GtfsConverter gtfsWeekend = new GtfsConverter(GTFSFeed.fromFile("test/input/sample-feed.zip"), scenarioWeekend, new IdentityTransformation());
+		gtfsWeekend.setDate(LocalDate.of(2007, 1, 6));
+		gtfsWeekend.convert();
+		
+		//Monday
+		GtfsConverter gtfsWeekdays = new GtfsConverter(GTFSFeed.fromFile("test/input/sample-feed.zip"), scenarioWeekdays, new IdentityTransformation());
+		gtfsWeekdays.setDate(LocalDate.of(2007, 1 ,1));
+		gtfsWeekdays.convert();
+		
+		checkSchedule(scenarioWeekdays, false);
+		checkSchedule(scenarioWeekend, true);
+	}
+	
+	private void checkSchedule (MutableScenario scenario, boolean weekend) {
+	        
+	    	TransitSchedule schedule = scenario.getTransitSchedule();
+		
+		int routes = 0;
+		for(TransitLine line: schedule.getTransitLines().values()) {
+		    routes += line.getRoutes().size();
+		}
+		
+		Assert.assertEquals(9, schedule.getFacilities().size());
+		
+		if(weekend) {
+		    	Assert.assertEquals(5, schedule.getTransitLines().size());
+		    	//the 4 trips of AAMV line are consolidated into 2. That makes 11 trips/routes decrease to 9.
+			Assert.assertEquals(9, routes);
+		} else {
+			Assert.assertEquals(4, schedule.getTransitLines().size());
+			Assert.assertEquals(7, routes);
+		}
+	}
 }

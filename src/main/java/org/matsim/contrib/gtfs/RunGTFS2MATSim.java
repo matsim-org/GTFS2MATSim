@@ -21,7 +21,7 @@ public class RunGTFS2MATSim {
      * 
      * @param fromFile path of input file
      * @param toFile path to write to
-     * @param date date to check for transit data. if null, current date of system is used
+     * @param date date to check for transit data
      * @param transformation coordination transformation for stops
 
      */
@@ -40,9 +40,7 @@ public class RunGTFS2MATSim {
 		Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
 
 		GtfsConverter converter = new GtfsConverter(feed, scenario, transformation);
-		if(date != null) {
-		    converter.setDate(date);
-		}
+		converter.setDate(date);
 		converter.convert();
 
 		System.out.println("Converted stops: " + scenario.getTransitSchedule().getFacilities().size());
