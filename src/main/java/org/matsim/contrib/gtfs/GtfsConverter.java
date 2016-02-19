@@ -49,14 +49,14 @@ public class GtfsConverter {
 
 		int startDate = Integer.MAX_VALUE;
 		for(Service service: this.feed.services.values()) {
-		    if(service.calendar.start_date<startDate) {
+		    if(service.calendar !=null && service.calendar.start_date<startDate) {
 			startDate = service.calendar.start_date;
 		    }
 		}
 		
 		int endDate = Integer.MIN_VALUE;
 		for(Service service: this.feed.services.values()) {
-		    if(service.calendar.end_date>endDate) {
+		    if(service.calendar !=null && service.calendar.end_date>endDate) {
 			endDate = service.calendar.end_date;
 		    }
 		}
