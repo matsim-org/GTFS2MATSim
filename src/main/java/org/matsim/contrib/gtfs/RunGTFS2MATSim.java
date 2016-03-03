@@ -10,6 +10,7 @@ import org.matsim.core.utils.geometry.transformations.IdentityTransformation;
 import org.matsim.pt.transitSchedule.api.TransitScheduleWriter;
 
 import com.conveyal.gtfs.GTFSFeed;
+import com.conveyal.gtfs.model.Route;
 
 /**
  * @author NKuehnel
@@ -36,6 +37,14 @@ public class RunGTFS2MATSim {
 		System.out.println("Parsed trips: "+feed.trips.size());
 		System.out.println("Parsed routes: "+feed.routes.size());
 		System.out.println("Parsed stops: "+feed.stops.size());
+		
+		
+		//this is a quick fix for VBB gtfs data which apparently is set to invalid numbers (Feb 2016)
+		for(Route route: feed.routes.values()) {
+			if(route.route_type>RouteType.values().length+1) {
+				route.route_type = 0;
+			}
+		}
 
 		Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
 
