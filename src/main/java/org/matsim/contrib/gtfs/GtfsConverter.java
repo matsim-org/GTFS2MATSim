@@ -50,23 +50,35 @@ public class GtfsConverter {
 		int startDate = Integer.MAX_VALUE;
 		for(Service service: this.feed.services.values()) {
 		    if(service.calendar !=null && service.calendar.start_date<startDate) {
-			startDate = service.calendar.start_date;
+				startDate = service.calendar.start_date;
 		    }
+			if(service.calendar_dates != null) {
+				for (LocalDate localDate : service.calendar_dates.keySet()) {
+					int exceptionDate = asGtfsDate(localDate);
+					if (exceptionDate < startDate) {
+						startDate = exceptionDate;
+					}
+				}
+			}
 		}
-		
+		System.out.println("Earliest date mentioned in feed: "+startDate);
+
 		int endDate = Integer.MIN_VALUE;
 		for(Service service: this.feed.services.values()) {
 		    if(service.calendar !=null && service.calendar.end_date>endDate) {
-			endDate = service.calendar.end_date;
+				endDate = service.calendar.end_date;
 		    }
+			if(service.calendar_dates != null) {
+				for (LocalDate localDate : service.calendar_dates.keySet()) {
+					int exceptionDate = asGtfsDate(localDate);
+					if (exceptionDate > endDate) {
+						endDate = exceptionDate;
+					}
+				}
+			}
+
 		}
-		
-//		this.feed.services.values().stream().flatMapToInt(service -> service.calendar)).min(Integer::compareTo).ifPresent(startDate -> {
-			System.out.println("Earliest service date: "+startDate);
-//		});
-//		this.feed.services.values().stream().flatMap(service -> service.calendar_dates.keySet().stream()).max(LocalDate::compareTo).ifPresent(endDate -> {
-			System.out.println("Latest service date: " + endDate);
-//		});
+		System.out.println("Latest date mentioned in feed: " + endDate);
 
 		// Get the used service Id for the chosen weekday and date
 		List<String> activeServiceIds = this.getActiveServiceIds(this.feed.services);
@@ -114,20 +126,16 @@ public class GtfsConverter {
 	
 	//fix for conveyal-lib as long as it does not regard day of week
 	private boolean activeOn(Service service) {
-		
 		Calendar calendar = service.calendar;
 		CalendarDate exception = service.calendar_dates.get(date);
-
 		if (exception != null)
 			return exception.exception_type == 1;
-
 		else if (calendar == null)
 			return false;
-
 		else {
-			int gtfsDate = date.getYear() * 10000 + date.getMonthValue() * 100 + date.getDayOfMonth();
+			int gtfsDate = asGtfsDate(this.date);
 			if( calendar.end_date >= gtfsDate && calendar.start_date <= gtfsDate) {
-				switch(date.getDayOfWeek().getValue()) {
+				switch(this.date.getDayOfWeek().getValue()) {
 				case 1: return calendar.monday==1;
 				case 2: return calendar.tuesday==1;
 				case 3: return calendar.wednesday==1;
@@ -139,6 +147,10 @@ public class GtfsConverter {
 			}
 			return false;
 		}
+	}
+
+	private int asGtfsDate(LocalDate date) {
+		return date.getYear() * 10000 + this.date.getMonthValue() * 100 + this.date.getDayOfMonth();
 	}
 
 
