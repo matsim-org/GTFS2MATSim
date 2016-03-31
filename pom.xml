@@ -54,7 +54,7 @@
 		<dependency>
 			<groupId>com.conveyal</groupId>
 			<artifactId>gtfs-lib</artifactId>
-			<version>0.2-SNAPSHOT</version>
+			<version>0.2-20160314.173329-12</version>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
