@@ -85,7 +85,7 @@ public class GtfsConverter {
 		System.out.printf("Active Services: %d %s\n", activeServiceIds.size(), activeServiceIds);
 
 		// Get the Trips which are active today
-		List<Trip> activeTrips = feed.trips.values().stream().filter(trip -> activeOn(trip.service)/*trip.service.activeOn(this.date)*/ ).collect(Collectors.toList());
+		List<Trip> activeTrips = feed.trips.values().stream().filter(trip -> trip.service.activeOn(this.date)).collect(Collectors.toList());
 		System.out.printf("Active Trips: %d %s\n", activeTrips.size(), activeTrips.stream().map(trip -> trip.trip_id).collect(Collectors.toList()));
 
 		// Create one TransitLine for each GTFS-Route which has an active trip
@@ -116,7 +116,7 @@ public class GtfsConverter {
 		List<String> serviceIds = new ArrayList<>();
 		System.out.println("Used Date for active schedules: " + this.date.toString() + " (weekday: " + date.getDayOfWeek().toString() + "). If you want to choose another date, please specify it, before running the converter");
 		for(Service service: services.values()){
-			if(/*service.activeOn(date)*/ activeOn(service)){
+			if(service.activeOn(date)){
 				serviceIds.add(service.service_id);
 			}
 		}
@@ -124,31 +124,6 @@ public class GtfsConverter {
 	}
 	
 	
-	//fix for conveyal-lib as long as it does not regard day of week
-	private boolean activeOn(Service service) {
-		Calendar calendar = service.calendar;
-		CalendarDate exception = service.calendar_dates.get(date);
-		if (exception != null)
-			return exception.exception_type == 1;
-		else if (calendar == null)
-			return false;
-		else {
-			int gtfsDate = asGtfsDate(this.date);
-			if( calendar.end_date >= gtfsDate && calendar.start_date <= gtfsDate) {
-				switch(this.date.getDayOfWeek().getValue()) {
-				case 1: return calendar.monday==1;
-				case 2: return calendar.tuesday==1;
-				case 3: return calendar.wednesday==1;
-				case 4: return calendar.thursday==1;
-				case 5: return calendar.friday==1;
-				case 6: return calendar.saturday==1;
-				case 7: return calendar.sunday==1;
-				}
-			}
-			return false;
-		}
-	}
-
 	private int asGtfsDate(LocalDate date) {
 		return date.getYear() * 10000 + this.date.getMonthValue() * 100 + this.date.getDayOfMonth();
 	}
