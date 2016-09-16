@@ -140,7 +140,19 @@ public class GtfsConverter {
 				for(StopTime stopTime : feed.getOrderedStopTimesForTrip(trip.trip_id)) {
 					Id<TransitStopFacility> stopId = Id.create(stopTime.stop_id, TransitStopFacility.class);
 					TransitStopFacility stop = ts.getFacilities().get(stopId);
-					TransitRouteStop routeStop = ts.getFactory().createTransitRouteStop(stop, Time.parseTime(String.valueOf(stopTime.arrival_time))-departureTime, Time.parseTime(String.valueOf(stopTime.departure_time))-departureTime);
+					double arrivalOffset;
+					if (stopTime.arrival_time != Integer.MIN_VALUE) {
+						arrivalOffset = Time.parseTime(String.valueOf(stopTime.arrival_time)) - departureTime;
+					} else {
+						arrivalOffset = Time.UNDEFINED_TIME;
+					}
+					double departureOffset;
+					if (stopTime.departure_time != Integer.MIN_VALUE) {
+						departureOffset = Time.parseTime(String.valueOf(stopTime.departure_time)) - departureTime;
+					} else {
+						departureOffset = Time.UNDEFINED_TIME;
+					}
+					TransitRouteStop routeStop = ts.getFactory().createTransitRouteStop(stop, arrivalOffset, departureOffset);
 					stops.add(routeStop);
 				}
 				TransitLine tl = ts.getTransitLines().get(Id.create(trip.route.route_id, TransitLine.class));
