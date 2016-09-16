@@ -137,23 +137,27 @@ public class GtfsConverter {
 				StopTime firstStopTime = feed.getOrderedStopTimesForTrip(trip.trip_id).iterator().next();
 				Double departureTime = Time.parseTime(String.valueOf(firstStopTime.departure_time));
 				List<TransitRouteStop> stops = new ArrayList<>();
-				for(StopTime stopTime : feed.getOrderedStopTimesForTrip(trip.trip_id)) {
-					Id<TransitStopFacility> stopId = Id.create(stopTime.stop_id, TransitStopFacility.class);
-					TransitStopFacility stop = ts.getFacilities().get(stopId);
-					double arrivalOffset;
-					if (stopTime.arrival_time != Integer.MIN_VALUE) {
-						arrivalOffset = Time.parseTime(String.valueOf(stopTime.arrival_time)) - departureTime;
-					} else {
-						arrivalOffset = Time.UNDEFINED_TIME;
+				try {
+					for(StopTime stopTime : feed.getInterpolatedStopTimesForTrip(trip.trip_id)) {
+						Id<TransitStopFacility> stopId = Id.create(stopTime.stop_id, TransitStopFacility.class);
+						TransitStopFacility stop = ts.getFacilities().get(stopId);
+						double arrivalOffset;
+						if (stopTime.arrival_time != Integer.MIN_VALUE) {
+							arrivalOffset = Time.parseTime(String.valueOf(stopTime.arrival_time)) - departureTime;
+						} else {
+							arrivalOffset = Time.UNDEFINED_TIME;
+						}
+						double departureOffset;
+						if (stopTime.departure_time != Integer.MIN_VALUE) {
+							departureOffset = Time.parseTime(String.valueOf(stopTime.departure_time)) - departureTime;
+						} else {
+							departureOffset = Time.UNDEFINED_TIME;
+						}
+						TransitRouteStop routeStop = ts.getFactory().createTransitRouteStop(stop, arrivalOffset, departureOffset);
+						stops.add(routeStop);
 					}
-					double departureOffset;
-					if (stopTime.departure_time != Integer.MIN_VALUE) {
-						departureOffset = Time.parseTime(String.valueOf(stopTime.departure_time)) - departureTime;
-					} else {
-						departureOffset = Time.UNDEFINED_TIME;
-					}
-					TransitRouteStop routeStop = ts.getFactory().createTransitRouteStop(stop, arrivalOffset, departureOffset);
-					stops.add(routeStop);
+				} catch (GTFSFeed.FirstAndLastStopsDoNotHaveTimes firstAndLastStopsDoNotHaveTimes) {
+					throw new RuntimeException(firstAndLastStopsDoNotHaveTimes);
 				}
 				TransitLine tl = ts.getTransitLines().get(Id.create(trip.route.route_id, TransitLine.class));
 				TransitRoute tr = findOrAddTransitRoute(tl, trip.route, stops);
