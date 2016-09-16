@@ -50,11 +50,11 @@ public class GtfsTest  {
 			Assert.assertEquals(ts1.getFacilities().get(stopId).getLinkId(), ts2.getFacilities().get(stopId).getLinkId());
 		}
 		Assert.assertEquals(ts1.getTransitLines().size(), ts2.getTransitLines().size());
-		for(Id transitId: ts1.getTransitLines().keySet()){
-			Assert.assertEquals(ts1.getTransitLines().get(transitId).getRoutes().size(), ts1.getTransitLines().get(transitId).getRoutes().size());
-			for(Id routeId: ts1.getTransitLines().get(transitId).getRoutes().keySet()){
-				TransitRoute tr1 = ts1.getTransitLines().get(transitId).getRoutes().get(routeId);
-				TransitRoute tr2 = ts2.getTransitLines().get(transitId).getRoutes().get(routeId);
+		for(Id lineId: ts1.getTransitLines().keySet()){
+			Assert.assertEquals(ts1.getTransitLines().get(lineId).getRoutes().size(), ts1.getTransitLines().get(lineId).getRoutes().size());
+			for(Id routeId: ts1.getTransitLines().get(lineId).getRoutes().keySet()){
+				TransitRoute tr1 = ts1.getTransitLines().get(lineId).getRoutes().get(routeId);
+				TransitRoute tr2 = ts2.getTransitLines().get(lineId).getRoutes().get(routeId);
 				Assert.assertEquals(tr1.getStops().size(), tr2.getStops().size());
 				Assert.assertEquals(tr1.getTransportMode(), tr2.getTransportMode());
 				for(TransitRouteStop trStop: tr1.getStops()){

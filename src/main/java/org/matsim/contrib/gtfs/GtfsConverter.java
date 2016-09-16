@@ -85,11 +85,11 @@ public class GtfsConverter {
 		System.out.printf("Active Services: %d %s\n", activeServiceIds.size(), activeServiceIds);
 
 		// Get the Trips which are active today
-		List<Trip> activeTrips = feed.trips.values().stream().filter(trip -> trip.service.activeOn(this.date)).collect(Collectors.toList());
+		List<Trip> activeTrips = feed.trips.values().stream().filter(trip -> feed.services.get(trip.service_id).activeOn(this.date)).collect(Collectors.toList());
 		System.out.printf("Active Trips: %d %s\n", activeTrips.size(), activeTrips.stream().map(trip -> trip.trip_id).collect(Collectors.toList()));
 
 		// Create one TransitLine for each GTFS-Route which has an active trip
-		activeTrips.stream().map(trip -> trip.route).distinct().forEach(route -> {
+		activeTrips.stream().map(trip -> feed.routes.get(trip.route_id)).distinct().forEach(route -> {
 			TransitLine tl = ts.getFactory().createTransitLine(Id.create(route.route_id, TransitLine.class));
 			ts.addTransitLine(tl);
 		});
@@ -133,7 +133,7 @@ public class GtfsConverter {
 		int scheduleDepartures = 0;
 		int frequencyDepartures = 0;
 		for (Trip trip : trips) {
-			if (trip.frequencies == null) {
+			if (feed.getFrequencies(trip.trip_id).isEmpty()) {
 				StopTime firstStopTime = feed.getOrderedStopTimesForTrip(trip.trip_id).iterator().next();
 				Double departureTime = Time.parseTime(String.valueOf(firstStopTime.departure_time));
 				List<TransitRouteStop> stops = new ArrayList<>();
@@ -159,8 +159,8 @@ public class GtfsConverter {
 				} catch (GTFSFeed.FirstAndLastStopsDoNotHaveTimes firstAndLastStopsDoNotHaveTimes) {
 					throw new RuntimeException(firstAndLastStopsDoNotHaveTimes);
 				}
-				TransitLine tl = ts.getTransitLines().get(Id.create(trip.route.route_id, TransitLine.class));
-				TransitRoute tr = findOrAddTransitRoute(tl, trip.route, stops);
+				TransitLine tl = ts.getTransitLines().get(Id.create(trip.route_id, TransitLine.class));
+				TransitRoute tr = findOrAddTransitRoute(tl, feed.routes.get(trip.route_id), stops);
 				Departure departure = ts.getFactory().createDeparture(Id.create(trip.trip_id, Departure.class), departureTime);
 				tr.addDeparture(departure);
 				scheduleDepartures++;
@@ -172,10 +172,10 @@ public class GtfsConverter {
 					TransitRouteStop routeStop = ts.getFactory().createTransitRouteStop(stop, Time.parseTime(String.valueOf(stopTime.arrival_time)), Time.parseTime(String.valueOf(stopTime.departure_time)));
 					stops.add(routeStop);
 				}
-				for (Frequency frequency : trip.frequencies) {
+				for (Frequency frequency : feed.getFrequencies(trip.trip_id)) {
 					for (int time = frequency.start_time; time < frequency.end_time; time += frequency.headway_secs) {
-						TransitLine tl = ts.getTransitLines().get(Id.create(trip.route.route_id, TransitLine.class));
-						TransitRoute tr = findOrAddTransitRoute(tl, trip.route, stops);
+						TransitLine tl = ts.getTransitLines().get(Id.create(trip.route_id, TransitLine.class));
+						TransitRoute tr = findOrAddTransitRoute(tl, feed.routes.get(trip.route_id), stops);
 						Departure d = ts.getFactory().createDeparture(Id.create(trip.trip_id + "." + time, Departure.class), time);
 						tr.addDeparture(d);
 						frequencyDepartures++;
