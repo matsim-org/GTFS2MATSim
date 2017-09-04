@@ -24,9 +24,9 @@ public class RunGTFS2MATSim {
      * @param toFile path to write to
      * @param date date to check for transit data
      * @param transformation coordination transformation for stops
-
+	 * @param useExtendedRouteTypes transfer extended route types to MATSim schedule
      */
-    public static void convertGtfs(String fromFile, String toFile, LocalDate date, CoordinateTransformation transformation) {
+    public static void convertGtfs(String fromFile, String toFile, LocalDate date, CoordinateTransformation transformation, boolean useExtendedRouteTypes) {
 		GTFSFeed feed = GTFSFeed.fromFile(fromFile);
 
 		feed.feedInfo.values().stream().findFirst().ifPresent(feedInfo -> {
@@ -37,18 +37,10 @@ public class RunGTFS2MATSim {
 		System.out.println("Parsed trips: "+feed.trips.size());
 		System.out.println("Parsed routes: "+feed.routes.size());
 		System.out.println("Parsed stops: "+feed.stops.size());
-		
-		
-		//this is a quick fix for VBB gtfs data which apparently is set to invalid numbers (Feb 2016)
-		for(Route route: feed.routes.values()) {
-			if(route.route_type>RouteType.values().length+1) {
-				route.route_type = 0;
-			}
-		}
 
 		Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
 
-		GtfsConverter converter = new GtfsConverter(feed, scenario, transformation);
+		GtfsConverter converter = new GtfsConverter(feed, scenario, transformation, false);
 		converter.setDate(date);
 		converter.convert();
 
@@ -64,7 +56,8 @@ public class RunGTFS2MATSim {
 		String inputZipFile = args[0];
 		String outputFile = args[1];
 		String date = args[2];
-		convertGtfs(inputZipFile, outputFile, LocalDate.parse(date), new IdentityTransformation());
+		boolean useExtendedRouteTypes = Boolean.parseBoolean(args[3]);
+		convertGtfs(inputZipFile, outputFile, LocalDate.parse(date), new IdentityTransformation(), useExtendedRouteTypes);
 	}
 
 }

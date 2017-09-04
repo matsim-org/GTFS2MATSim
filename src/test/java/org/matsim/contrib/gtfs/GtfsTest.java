@@ -24,7 +24,7 @@ public class GtfsTest  {
         Config config = ConfigUtils.createConfig();
         config.transit().setUseTransit(true);
 		MutableScenario scenario = (MutableScenario) ScenarioUtils.createScenario(config);
-		GtfsConverter gtfs = new GtfsConverter(GTFSFeed.fromFile("test/input/test-feed.zip"), scenario, new IdentityTransformation());
+		GtfsConverter gtfs = new GtfsConverter(GTFSFeed.fromFile("test/input/test-feed.zip"), scenario, new IdentityTransformation(), false);
 		// The WE-Trip is added on July 11th 2011, so calendar.txt and calendar_dates.txt can be checked
 		gtfs.setDate(LocalDate.of(2011, 7, 11));
 		gtfs.convert();
@@ -75,12 +75,12 @@ public class GtfsTest  {
 		MutableScenario scenarioWeekdays = (MutableScenario) ScenarioUtils.createScenario(config);
 		
 		//Saturday
-		GtfsConverter gtfsWeekend = new GtfsConverter(GTFSFeed.fromFile("test/input/sample-feed.zip"), scenarioWeekend, new IdentityTransformation());
+		GtfsConverter gtfsWeekend = new GtfsConverter(GTFSFeed.fromFile("test/input/sample-feed.zip"), scenarioWeekend, new IdentityTransformation(), false);
 		gtfsWeekend.setDate(LocalDate.of(2007, 1, 6));
 		gtfsWeekend.convert();
 		
 		//Monday
-		GtfsConverter gtfsWeekdays = new GtfsConverter(GTFSFeed.fromFile("test/input/sample-feed.zip"), scenarioWeekdays, new IdentityTransformation());
+		GtfsConverter gtfsWeekdays = new GtfsConverter(GTFSFeed.fromFile("test/input/sample-feed.zip"), scenarioWeekdays, new IdentityTransformation(), false);
 		gtfsWeekdays.setDate(LocalDate.of(2007, 1 ,1));
 		gtfsWeekdays.convert();
 		

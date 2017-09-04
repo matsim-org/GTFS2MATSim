@@ -29,11 +29,13 @@ public class GtfsConverter {
 	private MutableScenario scenario;
 	private TransitSchedule ts;
 	private LocalDate date = LocalDate.now();
+	private boolean useExtendedRouteTypes;
 
-	public GtfsConverter(GTFSFeed feed, Scenario scenario, CoordinateTransformation transform) {
+	public GtfsConverter(GTFSFeed feed, Scenario scenario, CoordinateTransformation transform, boolean useExtendedRouteTypes) {
 		this.feed = feed;
 		this.transform = transform;
 		this.scenario = (MutableScenario) scenario;
+		this.useExtendedRouteTypes = useExtendedRouteTypes;
 	}
 
 	public void setDate(LocalDate date) {
@@ -195,8 +197,17 @@ public class GtfsConverter {
 			} 
 		}
 		Id<TransitRoute> routeId = Id.create(tl.getId().toString() + "_" + tl.getRoutes().size(), TransitRoute.class);
-
-		TransitRoute tr = ts.getFactory().createTransitRoute(routeId, /*networkRoute*/ null, stops, RouteType.values()[route.route_type].toString());
+		
+		RouteType routeType = RouteType.getRouteTypes().get(route.route_type);
+		if (routeType == null) {
+			throw new RuntimeException("This route type does not exist! Route type = " + route.route_type);
+		}
+		TransitRoute tr = null;
+		if (!useExtendedRouteTypes) {
+			tr = ts.getFactory().createTransitRoute(routeId, /*networkRoute*/ null, stops, routeType.getSimpleTypeName());
+		} else {
+			tr = ts.getFactory().createTransitRoute(routeId, /*networkRoute*/ null, stops, routeType.getTypeName());
+		}
 		tl.addRoute(tr);
 		return tr;
 	}
