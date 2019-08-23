@@ -92,7 +92,7 @@ public class GtfsConverter {
 
 		// Create one TransitLine for each GTFS-Route which has an active trip
 		activeTrips.stream().map(trip -> feed.routes.get(trip.route_id)).distinct().forEach(route -> {
-			TransitLine tl = ts.getFactory().createTransitLine(Id.create(route.route_id, TransitLine.class));
+			TransitLine tl = ts.getFactory().createTransitLine(getReadableTransitLineId(route));
 			ts.addTransitLine(tl);
 		});
 
@@ -162,7 +162,7 @@ public class GtfsConverter {
 				} catch (GTFSFeed.FirstAndLastStopsDoNotHaveTimes firstAndLastStopsDoNotHaveTimes) {
 					throw new RuntimeException(firstAndLastStopsDoNotHaveTimes);
 				}
-				TransitLine tl = ts.getTransitLines().get(Id.create(trip.route_id, TransitLine.class));
+				TransitLine tl = ts.getTransitLines().get(getReadableTransitLineId(trip));
 				TransitRoute tr = findOrAddTransitRoute(tl, feed.routes.get(trip.route_id), stops);
 				Departure departure = ts.getFactory().createDeparture(Id.create(trip.trip_id, Departure.class), departureTime);
 				tr.addDeparture(departure);
@@ -179,7 +179,7 @@ public class GtfsConverter {
 				}
 				for (Frequency frequency : feed.getFrequencies(trip.trip_id)) {
 					for (int time = frequency.start_time; time < frequency.end_time; time += frequency.headway_secs) {
-						TransitLine tl = ts.getTransitLines().get(Id.create(trip.route_id, TransitLine.class));
+						TransitLine tl = ts.getTransitLines().get(getReadableTransitLineId(trip));
 						TransitRoute tr = findOrAddTransitRoute(tl, feed.routes.get(trip.route_id), stops);
 						Departure d = ts.getFactory().createDeparture(Id.create(trip.trip_id + "." + time, Departure.class), time);
 						tr.addDeparture(d);
@@ -213,6 +213,14 @@ public class GtfsConverter {
 		}
 		tl.addRoute(tr);
 		return tr;
+	}
+	
+	private Id<TransitLine> getReadableTransitLineId(Trip trip) {
+		return getReadableTransitLineId(feed.routes.get(trip.route_id));
+	}
+	
+	private Id<TransitLine> getReadableTransitLineId(Route route) {
+		return Id.create(route.route_short_name == null ? "XXX---" + route.route_id : route.route_short_name + "---" + route.route_id, TransitLine.class);
 	}
 	
 }
