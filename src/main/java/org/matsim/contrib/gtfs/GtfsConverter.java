@@ -156,6 +156,7 @@ public class GtfsConverter {
 							departureOffset = Time.UNDEFINED_TIME;
 						}
 						TransitRouteStop routeStop = ts.getFactory().createTransitRouteStop(stop, arrivalOffset, departureOffset);
+						routeStop.setAwaitDepartureTime(true);
 						stops.add(routeStop);
 					}
 				} catch (GTFSFeed.FirstAndLastStopsDoNotHaveTimes firstAndLastStopsDoNotHaveTimes) {
