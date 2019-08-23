@@ -49,15 +49,14 @@ public class GtfsConverter {
 		// Put all stops in the Schedule
 		this.convertStops();
 
-		int startDate = Integer.MAX_VALUE;
+		LocalDate startDate = LocalDate.MAX;
 		for(Service service: this.feed.services.values()) {
-		    if(service.calendar !=null && service.calendar.start_date<startDate) {
+		    if(service.calendar !=null && service.calendar.start_date.isBefore(startDate)) {
 				startDate = service.calendar.start_date;
 		    }
 			if(service.calendar_dates != null) {
-				for (LocalDate localDate : service.calendar_dates.keySet()) {
-					int exceptionDate = asGtfsDate(localDate);
-					if (exceptionDate < startDate) {
+				for (LocalDate exceptionDate : service.calendar_dates.keySet()) {
+					if (exceptionDate.isBefore(startDate)) {
 						startDate = exceptionDate;
 					}
 				}
@@ -65,15 +64,14 @@ public class GtfsConverter {
 		}
 		System.out.println("Earliest date mentioned in feed: "+startDate);
 
-		int endDate = Integer.MIN_VALUE;
+		LocalDate endDate = LocalDate.MIN;
 		for(Service service: this.feed.services.values()) {
-		    if(service.calendar !=null && service.calendar.end_date>endDate) {
+		    if(service.calendar !=null && service.calendar.end_date.isAfter(endDate)) {
 				endDate = service.calendar.end_date;
 		    }
 			if(service.calendar_dates != null) {
-				for (LocalDate localDate : service.calendar_dates.keySet()) {
-					int exceptionDate = asGtfsDate(localDate);
-					if (exceptionDate > endDate) {
+				for (LocalDate exceptionDate : service.calendar_dates.keySet()) {
+					if (exceptionDate.isAfter(endDate)) {
 						endDate = exceptionDate;
 					}
 				}

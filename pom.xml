@@ -23,6 +23,12 @@
 				<enabled>true</enabled>
 			</snapshots>
 		</repository>
+		<!-- gtfs-lib depends on jackson2-geojson 0.8 only available at conveyal's repository -->
+		<repository>
+			<id>conveyal</id>
+			<name>Conveyal Maven Repository</name>
+			<url>https://maven.conveyal.com/</url>
+		</repository>
 	</repositories>
 
 	<build>
@@ -46,7 +52,7 @@
 		<dependency>
 			<groupId>com.conveyal</groupId>
 			<artifactId>gtfs-lib</artifactId>
-			<version>1.4.0</version>
+			<version>5.0.2</version>
 			<!-- TODO: most recent version is v5.0.2, maybe that version throws less errors -->
 		</dependency>
 		<dependency>
@@ -56,6 +62,11 @@
 			<scope>test</scope>
 		</dependency>
 
+		<dependency>
+			<groupId>com.conveyal</groupId>
+			<artifactId>jackson2-geojson</artifactId>
+			<version>0.8</version>
+		</dependency>
 
 	</dependencies>
 
