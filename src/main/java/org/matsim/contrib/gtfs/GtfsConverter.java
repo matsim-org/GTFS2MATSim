@@ -172,6 +172,8 @@ public class GtfsConverter {
 					Id<TransitStopFacility> stopId = Id.create(stopTime.stop_id, TransitStopFacility.class);
 					TransitStopFacility stop = ts.getFacilities().get(stopId);
 					TransitRouteStop routeStop = ts.getFactory().createTransitRouteStop(stop, Time.parseTime(String.valueOf(stopTime.arrival_time)), Time.parseTime(String.valueOf(stopTime.departure_time)));
+					// transit drivers should always await departure, because otherwise they can run far ahead of schedule 
+					routeStop.setAwaitDepartureTime(true);
 					stops.add(routeStop);
 				}
 				for (Frequency frequency : feed.getFrequencies(trip.trip_id)) {
