@@ -53,7 +53,6 @@
 			<groupId>com.conveyal</groupId>
 			<artifactId>gtfs-lib</artifactId>
 			<version>5.0.2</version>
-			<!-- TODO: most recent version is v5.0.2, maybe that version throws less errors -->
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
