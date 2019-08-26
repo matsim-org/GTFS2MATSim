@@ -49,15 +49,14 @@ public class GtfsConverter {
 		// Put all stops in the Schedule
 		this.convertStops();
 
-		int startDate = Integer.MAX_VALUE;
+		LocalDate startDate = LocalDate.MAX;
 		for(Service service: this.feed.services.values()) {
-		    if(service.calendar !=null && service.calendar.start_date<startDate) {
+		    if(service.calendar !=null && service.calendar.start_date.isBefore(startDate)) {
 				startDate = service.calendar.start_date;
 		    }
 			if(service.calendar_dates != null) {
-				for (LocalDate localDate : service.calendar_dates.keySet()) {
-					int exceptionDate = asGtfsDate(localDate);
-					if (exceptionDate < startDate) {
+				for (LocalDate exceptionDate : service.calendar_dates.keySet()) {
+					if (exceptionDate.isBefore(startDate)) {
 						startDate = exceptionDate;
 					}
 				}
@@ -65,15 +64,14 @@ public class GtfsConverter {
 		}
 		System.out.println("Earliest date mentioned in feed: "+startDate);
 
-		int endDate = Integer.MIN_VALUE;
+		LocalDate endDate = LocalDate.MIN;
 		for(Service service: this.feed.services.values()) {
-		    if(service.calendar !=null && service.calendar.end_date>endDate) {
+		    if(service.calendar !=null && service.calendar.end_date.isAfter(endDate)) {
 				endDate = service.calendar.end_date;
 		    }
 			if(service.calendar_dates != null) {
-				for (LocalDate localDate : service.calendar_dates.keySet()) {
-					int exceptionDate = asGtfsDate(localDate);
-					if (exceptionDate > endDate) {
+				for (LocalDate exceptionDate : service.calendar_dates.keySet()) {
+					if (exceptionDate.isAfter(endDate)) {
 						endDate = exceptionDate;
 					}
 				}
@@ -92,7 +90,7 @@ public class GtfsConverter {
 
 		// Create one TransitLine for each GTFS-Route which has an active trip
 		activeTrips.stream().map(trip -> feed.routes.get(trip.route_id)).distinct().forEach(route -> {
-			TransitLine tl = ts.getFactory().createTransitLine(Id.create(route.route_id, TransitLine.class));
+			TransitLine tl = ts.getFactory().createTransitLine(getReadableTransitLineId(route));
 			ts.addTransitLine(tl);
 		});
 
@@ -156,12 +154,13 @@ public class GtfsConverter {
 							departureOffset = Time.UNDEFINED_TIME;
 						}
 						TransitRouteStop routeStop = ts.getFactory().createTransitRouteStop(stop, arrivalOffset, departureOffset);
+						routeStop.setAwaitDepartureTime(true);
 						stops.add(routeStop);
 					}
 				} catch (GTFSFeed.FirstAndLastStopsDoNotHaveTimes firstAndLastStopsDoNotHaveTimes) {
 					throw new RuntimeException(firstAndLastStopsDoNotHaveTimes);
 				}
-				TransitLine tl = ts.getTransitLines().get(Id.create(trip.route_id, TransitLine.class));
+				TransitLine tl = ts.getTransitLines().get(getReadableTransitLineId(trip));
 				TransitRoute tr = findOrAddTransitRoute(tl, feed.routes.get(trip.route_id), stops);
 				Departure departure = ts.getFactory().createDeparture(Id.create(trip.trip_id, Departure.class), departureTime);
 				tr.addDeparture(departure);
@@ -172,11 +171,13 @@ public class GtfsConverter {
 					Id<TransitStopFacility> stopId = Id.create(stopTime.stop_id, TransitStopFacility.class);
 					TransitStopFacility stop = ts.getFacilities().get(stopId);
 					TransitRouteStop routeStop = ts.getFactory().createTransitRouteStop(stop, Time.parseTime(String.valueOf(stopTime.arrival_time)), Time.parseTime(String.valueOf(stopTime.departure_time)));
+					// transit drivers should always await departure, because otherwise they can run far ahead of schedule 
+					routeStop.setAwaitDepartureTime(true);
 					stops.add(routeStop);
 				}
 				for (Frequency frequency : feed.getFrequencies(trip.trip_id)) {
 					for (int time = frequency.start_time; time < frequency.end_time; time += frequency.headway_secs) {
-						TransitLine tl = ts.getTransitLines().get(Id.create(trip.route_id, TransitLine.class));
+						TransitLine tl = ts.getTransitLines().get(getReadableTransitLineId(trip));
 						TransitRoute tr = findOrAddTransitRoute(tl, feed.routes.get(trip.route_id), stops);
 						Departure d = ts.getFactory().createDeparture(Id.create(trip.trip_id + "." + time, Departure.class), time);
 						tr.addDeparture(d);
@@ -210,6 +211,14 @@ public class GtfsConverter {
 		}
 		tl.addRoute(tr);
 		return tr;
+	}
+	
+	private Id<TransitLine> getReadableTransitLineId(Trip trip) {
+		return getReadableTransitLineId(feed.routes.get(trip.route_id));
+	}
+	
+	private Id<TransitLine> getReadableTransitLineId(Route route) {
+		return Id.create(route.route_short_name == null ? "XXX---" + route.route_id : route.route_short_name + "---" + route.route_id, TransitLine.class);
 	}
 	
 }

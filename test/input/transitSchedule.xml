@@ -6,12 +6,12 @@
 		<stopFacility id="TEST_STOP_1" x="-116.784582" y="36.868446" name="GTFS TEST STOP 1"/>
 		<stopFacility id="TEST_STOP_2" x="-116.751677" y="36.915682" name="GTFS TEST STOP 2"/>
 	</transitStops>
-	<transitLine id="TEST_ROUTE">
-		<transitRoute id="TEST_ROUTE_0">
+	<transitLine id="Test Route---TEST_ROUTE">
+		<transitRoute id="Test Route---TEST_ROUTE_0">
 			<transportMode>bus</transportMode>
 			<routeProfile>
-				<stop refId="TEST_STOP_1" arrivalOffset="00:00:00" departureOffset="00:00:00"/>
-				<stop refId="TEST_STOP_2" arrivalOffset="00:20:00" departureOffset="00:20:00"/>
+				<stop refId="TEST_STOP_1" arrivalOffset="00:00:00" departureOffset="00:00:00" awaitDeparture="true"/>
+				<stop refId="TEST_STOP_2" arrivalOffset="00:20:00" departureOffset="00:20:00" awaitDeparture="true"/>
 			</routeProfile>
 			<departures>
 				<departure id="TEST_TRIP_WD.0" departureTime="06:00:00"/>
@@ -26,11 +26,11 @@
 				<departure id="TEST_TRIP_WD.9" departureTime="16:00:00"/>
 			</departures>
 		</transitRoute>
-		<transitRoute id="TEST_ROUTE_1">
+		<transitRoute id="Test Route---TEST_ROUTE_1">
 			<transportMode>bus</transportMode>
 			<routeProfile>
-				<stop refId="TEST_STOP_1" arrivalOffset="00:00:00" departureOffset="00:00:00"/>
-				<stop refId="TEST_STOP_2" arrivalOffset="00:35:00" departureOffset="00:35:00"/>
+				<stop refId="TEST_STOP_1" arrivalOffset="00:00:00" departureOffset="00:00:00" awaitDeparture="true"/>
+				<stop refId="TEST_STOP_2" arrivalOffset="00:35:00" departureOffset="00:35:00" awaitDeparture="true"/>
 			</routeProfile>
 			<departures>
 				<departure id="TEST_TRIP_WE.0" departureTime="06:10:00"/>

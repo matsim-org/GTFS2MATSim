@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.matsim.contrib</groupId>
 	<artifactId>matsim-gtfs</artifactId>
-	<version>11.0</version>
+	<version>12.0-SNAPSHOT</version>
 
 	<repositories>
 		<repository>
@@ -22,6 +22,12 @@
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
+		</repository>
+		<!-- gtfs-lib depends on jackson2-geojson 0.8 only available at conveyal's repository -->
+		<repository>
+			<id>conveyal</id>
+			<name>Conveyal Maven Repository</name>
+			<url>https://maven.conveyal.com/</url>
 		</repository>
 	</repositories>
 
@@ -46,7 +52,7 @@
 		<dependency>
 			<groupId>com.conveyal</groupId>
 			<artifactId>gtfs-lib</artifactId>
-			<version>1.4.0</version>
+			<version>5.0.2</version>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
@@ -55,6 +61,11 @@
 			<scope>test</scope>
 		</dependency>
 
+		<dependency>
+			<groupId>com.conveyal</groupId>
+			<artifactId>jackson2-geojson</artifactId>
+			<version>0.8</version>
+		</dependency>
 
 	</dependencies>
 
