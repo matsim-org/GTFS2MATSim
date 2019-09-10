@@ -35,7 +35,7 @@ import org.matsim.pt.transitSchedule.api.TransitSchedule;
  * @author vsp-gleich
  *
  */
-public class PostProcessTools {
+public class TransitSchedulePostProcessTools {
 	
 	/**
 	 * Sometimes departures of day x are found in GTFS data as a trip on day x-1 at 24:00 hours or later.
@@ -46,7 +46,8 @@ public class PostProcessTools {
 	 * @param startTimeOfCopying starting at that time of the converted day all trips are copied and 
 	 * added 24 hours earlier to the same day
 	 * @param departureExclusionMarker if departure id contains this String, it won't be copied, 
-	 * e.g. useful if {@link copyEarlyDeparturesToFollowingNight} was run before
+	 * e.g. useful if {@link copyEarlyDeparturesToFollowingNight} was run before. 
+	 * Use null if you do not want to exclude any String
 	 * @param copyDespiteArrivalBeforeMidnight if startTimeOfCopying < 24:00 it might happen that a Departure is copied 
 	 * although it arrives at the terminus already before midnight. If copied, it would arrive at the terminus stop before
 	 * time 0:00 and for that reason would be useless for normal Matsim agents departing at 0:00 or after. 
@@ -63,7 +64,7 @@ public class PostProcessTools {
 					// do not copy Departures which arrive before midnight ()
 					double arrivalAtLastStop = dep.getDepartureTime() + route.getStops().get(route.getStops().size() - 1).getArrivalOffset();
 					if (oldDepartureTime > startTimeOfCopying && 
-							!dep.getId().toString().contains(departureExclusionMarker) &&
+							(departureExclusionMarker== null || !dep.getId().toString().contains(departureExclusionMarker)) &&
 							(copyDespiteArrivalBeforeMidnight || arrivalAtLastStop >= 24*3600) ) {
 						Departure copiedDep = schedule.getFactory().createDeparture(
 								Id.create("copied-24h_" + dep.getId().toString(), Departure.class), 
@@ -89,6 +90,7 @@ public class PostProcessTools {
 	 * added 24 hours later to the same day
 	 * @param departureExclusionMarker if departure id contains this String, it won't be copied, 
 	 * e.g. useful if {@link copyLateDeparturesToStartOfDay} was run before
+	 * Use null if you do not want to exclude any String
 	 */
 	public static void copyEarlyDeparturesToFollowingNight(TransitSchedule schedule, double endTimeOfCopying, 
 			String departureExclusionMarker) {
@@ -99,7 +101,7 @@ public class PostProcessTools {
 				for (Departure dep: route.getDepartures().values()) {
 					double oldDepartureTime = dep.getDepartureTime();
 					if (oldDepartureTime < endTimeOfCopying && 
-							!dep.getId().toString().contains(departureExclusionMarker)) {
+							(departureExclusionMarker== null || !dep.getId().toString().contains(departureExclusionMarker))) {
 						Departure copiedDep = schedule.getFactory().createDeparture(
 								Id.create("copied+24h_" + dep.getId().toString(), Departure.class), 
 								oldDepartureTime + 24*3600);
