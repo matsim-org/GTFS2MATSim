@@ -1,5 +1,6 @@
 package org.matsim.contrib.gtfs;
 
+import java.text.Normalizer;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -92,6 +93,10 @@ public class GtfsConverter {
 		activeTrips.stream().map(trip -> feed.routes.get(trip.route_id)).distinct().forEach(route -> {
 			TransitLine tl = ts.getFactory().createTransitLine(getReadableTransitLineId(route));
 			ts.addTransitLine(tl);
+			tl.getAttributes().putAttribute("gtfs_agency_id", String.valueOf(route.agency_id));
+			tl.getAttributes().putAttribute("gtfs_route_type", String.valueOf(route.route_type));
+			tl.getAttributes().putAttribute("gtfs_route_short_name", 
+					Normalizer.normalize(route.route_short_name, Normalizer.Form.NFD)); // replaces non ascii symbols
 		});
 
 		this.convertTrips(activeTrips);
@@ -218,7 +223,11 @@ public class GtfsConverter {
 	}
 	
 	private Id<TransitLine> getReadableTransitLineId(Route route) {
-		return Id.create(route.route_short_name == null ? "XXX---" + route.route_id : route.route_short_name + "---" + route.route_id, TransitLine.class);
+		String asciiShortName = "XXX"; 
+		if (route.route_short_name != null && route.route_short_name.length() > 0) {
+			asciiShortName = Normalizer.normalize(route.route_short_name, Normalizer.Form.NFD);
+		}
+		return Id.create(asciiShortName + "---" + route.route_id, TransitLine.class);
 	}
 	
 }
