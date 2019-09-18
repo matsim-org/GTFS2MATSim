@@ -14,6 +14,7 @@ import org.matsim.pt.transitSchedule.api.TransitRoute;
 import org.matsim.pt.transitSchedule.api.TransitRouteStop;
 import org.matsim.pt.transitSchedule.api.TransitSchedule;
 import org.matsim.pt.transitSchedule.api.TransitScheduleReader;
+import org.matsim.pt.transitSchedule.api.TransitStopFacility;
 
 import java.time.LocalDate;
 
@@ -44,15 +45,19 @@ public class GtfsTest  {
 		TransitSchedule ts1 = sc1.getTransitSchedule();
 		TransitSchedule ts2 = sc2.getTransitSchedule();
 		Assert.assertEquals(ts1.getFacilities().size(), ts2.getFacilities().size());
-		for(Id stopId: ts1.getFacilities().keySet()){
+		for(Id<TransitStopFacility> stopId: ts1.getFacilities().keySet()){
 			Assert.assertEquals(ts1.getFacilities().get(stopId).getName(), ts2.getFacilities().get(stopId).getName());
 			Assert.assertEquals(ts1.getFacilities().get(stopId).getCoord(), ts2.getFacilities().get(stopId).getCoord());
 			Assert.assertEquals(ts1.getFacilities().get(stopId).getLinkId(), ts2.getFacilities().get(stopId).getLinkId());
 		}
 		Assert.assertEquals(ts1.getTransitLines().size(), ts2.getTransitLines().size());
-		for(Id lineId: ts1.getTransitLines().keySet()){
+		for(Id<TransitLine> lineId: ts1.getTransitLines().keySet()){
 			Assert.assertEquals(ts1.getTransitLines().get(lineId).getRoutes().size(), ts1.getTransitLines().get(lineId).getRoutes().size());
-			for(Id routeId: ts1.getTransitLines().get(lineId).getRoutes().keySet()){
+			Assert.assertEquals(ts1.getTransitLines().get(lineId).getAttributes().getAttribute("gtfs_agency_id"), ts2.getTransitLines().get(lineId).getAttributes().getAttribute("gtfs_agency_id"));
+			Assert.assertEquals(ts1.getTransitLines().get(lineId).getAttributes().getAttribute("gtfs_route_type"), ts2.getTransitLines().get(lineId).getAttributes().getAttribute("gtfs_route_type"));
+			Assert.assertEquals(ts1.getTransitLines().get(lineId).getAttributes().getAttribute("gtfs_route_short_name"), ts2.getTransitLines().get(lineId).getAttributes().getAttribute("gtfs_route_short_name"));
+			
+			for(Id<TransitRoute> routeId: ts1.getTransitLines().get(lineId).getRoutes().keySet()){
 				TransitRoute tr1 = ts1.getTransitLines().get(lineId).getRoutes().get(routeId);
 				TransitRoute tr2 = ts2.getTransitLines().get(lineId).getRoutes().get(routeId);
 				Assert.assertEquals(tr1.getStops().size(), tr2.getStops().size());
