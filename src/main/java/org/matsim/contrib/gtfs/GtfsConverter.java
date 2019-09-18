@@ -225,7 +225,7 @@ public class GtfsConverter {
 	private Id<TransitLine> getReadableTransitLineId(Route route) {
 		String asciiShortName = "XXX"; 
 		if (route.route_short_name != null && route.route_short_name.length() > 0) {
-			asciiShortName = Normalizer.normalize(route.route_short_name, Normalizer.Form.NFD);
+			asciiShortName = Normalizer.normalize(route.route_short_name, Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "");
 		}
 		return Id.create(asciiShortName + "---" + route.route_id, TransitLine.class);
 	}
