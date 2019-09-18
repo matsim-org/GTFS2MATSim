@@ -96,7 +96,7 @@ public class GtfsConverter {
 			tl.getAttributes().putAttribute("gtfs_agency_id", String.valueOf(route.agency_id));
 			tl.getAttributes().putAttribute("gtfs_route_type", String.valueOf(route.route_type));
 			tl.getAttributes().putAttribute("gtfs_route_short_name", 
-					Normalizer.normalize(route.route_short_name, Normalizer.Form.NFD)); // replaces non ascii symbols
+					Normalizer.normalize(route.route_short_name, Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "")); // replaces non ascii symbols
 		});
 
 		this.convertTrips(activeTrips);
