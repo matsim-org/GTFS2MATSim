@@ -95,8 +95,16 @@ public class GtfsConverter {
 			ts.addTransitLine(tl);
 			tl.getAttributes().putAttribute("gtfs_agency_id", String.valueOf(route.agency_id));
 			tl.getAttributes().putAttribute("gtfs_route_type", String.valueOf(route.route_type));
+			
+			String routeShortName = null;
+			if (route.route_short_name != null) {
+				routeShortName = route.route_short_name;
+			} else {
+				// use id in case there is no route short name
+				routeShortName = String.valueOf(route.route_id);
+			}
 			tl.getAttributes().putAttribute("gtfs_route_short_name", 
-					Normalizer.normalize(route.route_short_name, Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "")); // replaces non ascii symbols
+					Normalizer.normalize(routeShortName, Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "")); // replaces non ascii symbols
 		});
 
 		this.convertTrips(activeTrips);
