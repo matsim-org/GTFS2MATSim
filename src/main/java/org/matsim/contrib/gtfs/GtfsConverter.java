@@ -146,7 +146,7 @@ public class GtfsConverter {
 		int scheduleDepartures = 0;
 		int frequencyDepartures = 0;
 		for (Trip trip : trips) {
-			if (feed.getFrequencies(trip.trip_id).isEmpty()) {
+			if (feed.getFrequencies(trip.trip_id).isEmpty() && feed.getOrderedStopTimesForTrip(trip.trip_id) != null) {		
 				StopTime firstStopTime = feed.getOrderedStopTimesForTrip(trip.trip_id).iterator().next();
 				Double departureTime = Time.parseTime(String.valueOf(firstStopTime.departure_time));
 				List<TransitRouteStop> stops = new ArrayList<>();
