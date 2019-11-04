@@ -67,7 +67,7 @@ public class GtfsConverter {
 				}
 			}
 		}
-		System.out.println("Earliest date mentioned in feed: "+startDate);
+		log.info("Earliest date mentioned in feed: "+startDate);
 
 		LocalDate endDate = LocalDate.MIN;
 		for(Service service: this.feed.services.values()) {
@@ -83,15 +83,15 @@ public class GtfsConverter {
 			}
 
 		}
-		System.out.println("Latest date mentioned in feed: " + endDate);
+		log.info("Latest date mentioned in feed: " + endDate);
 
 		// Get the used service Id for the chosen weekday and date
 		List<String> activeServiceIds = this.getActiveServiceIds(this.feed.services);
-		System.out.printf("Active Services: %d %s\n", activeServiceIds.size(), activeServiceIds);
+		log.info(String.format("Active Services: %d %s", activeServiceIds.size(), activeServiceIds));
 
 		// Get the Trips which are active today
 		List<Trip> activeTrips = feed.trips.values().stream().filter(trip -> feed.services.get(trip.service_id).activeOn(this.date)).collect(Collectors.toList());
-		System.out.printf("Active Trips: %d %s\n", activeTrips.size(), activeTrips.stream().map(trip -> trip.trip_id).collect(Collectors.toList()));
+		log.info(String.format("Active Trips: %d %s", activeTrips.size(), activeTrips.stream().map(trip -> trip.trip_id).collect(Collectors.toList())));
 
 		// Create one TransitLine for each GTFS-Route which has an active trip
 		activeTrips.stream().map(trip -> feed.routes.get(trip.route_id)).distinct().forEach(route -> {
@@ -114,9 +114,9 @@ public class GtfsConverter {
 		this.convertTrips(activeTrips);
 
 		if(activeTrips.isEmpty()){
-			System.out.println("There are no converted trips. You might need to change the date for better results.");
+			log.warn("There are no converted trips. You might need to change the date for better results.");
 		}
-		System.out.println("Conversion successfull");
+		log.info("Conversion successfull");
 	}
 	
 	
@@ -131,7 +131,7 @@ public class GtfsConverter {
 
 	private List<String> getActiveServiceIds(Map<String, Service> services) {
 		List<String> serviceIds = new ArrayList<>();
-		System.out.println("Used Date for active schedules: " + this.date.toString() + " (weekday: " + date.getDayOfWeek().toString() + "). If you want to choose another date, please specify it, before running the converter");
+		log.info("Used Date for active schedules: " + this.date.toString() + " (weekday: " + date.getDayOfWeek().toString() + "). If you want to choose another date, please specify it, before running the converter");
 		for(Service service: services.values()){
 			if(service.activeOn(date)){
 				serviceIds.add(service.service_id);
@@ -202,8 +202,8 @@ public class GtfsConverter {
 				}
 			}
 		}
-		System.out.println("Created schedule-based departures: " + scheduleDepartures);
-		System.out.println("Created frequency-based departures: " + frequencyDepartures);
+		log.info("Created schedule-based departures: " + scheduleDepartures);
+		log.info("Created frequency-based departures: " + frequencyDepartures);
 	}
 
 
