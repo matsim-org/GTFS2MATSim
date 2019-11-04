@@ -93,8 +93,8 @@ public class GtfsConverter {
 		activeTrips.stream().map(trip -> feed.routes.get(trip.route_id)).distinct().forEach(route -> {
 			TransitLine tl = ts.getFactory().createTransitLine(getReadableTransitLineId(route));
 			ts.addTransitLine(tl);
-			tl.getAttributes().putAttribute("gtfs_agency_id", String.valueOf(route.agency_id));
-			tl.getAttributes().putAttribute("gtfs_route_type", String.valueOf(route.route_type));
+			if (route.agency_id != null) tl.getAttributes().putAttribute("gtfs_agency_id", String.valueOf(route.agency_id)) ;
+			tl.getAttributes().putAttribute("gtfs_route_type", String.valueOf(route.route_type)); // route type is a required field according to GTFS specification
 			
 			String routeShortName = null;
 			if (route.route_short_name != null) {
@@ -134,11 +134,6 @@ public class GtfsConverter {
 			}
 		}
 		return serviceIds;
-	}
-	
-	
-	private int asGtfsDate(LocalDate date) {
-		return date.getYear() * 10000 + this.date.getMonthValue() * 100 + this.date.getDayOfMonth();
 	}
 
 
