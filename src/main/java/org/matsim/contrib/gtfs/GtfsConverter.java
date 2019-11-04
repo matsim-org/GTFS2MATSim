@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.conveyal.gtfs.model.*;
+
+import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
@@ -24,6 +26,8 @@ import org.matsim.pt.transitSchedule.api.TransitStopFacility;
 import com.conveyal.gtfs.GTFSFeed;
 
 public class GtfsConverter {
+	
+	private static final Logger log = Logger.getLogger(GtfsConverter.class);
     
 	private GTFSFeed feed;
 	private CoordinateTransformation transform;
@@ -141,7 +145,11 @@ public class GtfsConverter {
 		int scheduleDepartures = 0;
 		int frequencyDepartures = 0;
 		for (Trip trip : trips) {
-			if (feed.getFrequencies(trip.trip_id).isEmpty() && feed.getOrderedStopTimesForTrip(trip.trip_id).iterator().hasNext()) {		
+			if (feed.getFrequencies(trip.trip_id).isEmpty()) {
+				if (feed.getOrderedStopTimesForTrip(trip.trip_id) == null || !feed.getOrderedStopTimesForTrip(trip.trip_id).iterator().hasNext()) {
+					log.error("Found a trip with neither frequency nor ordered stop times. Will not add any Matsim TransitRoute/Departure for that trip. GTFS trip_id=" + trip.trip_id);
+					continue;
+				}
 				StopTime firstStopTime = feed.getOrderedStopTimesForTrip(trip.trip_id).iterator().next();
 				Double departureTime = Time.parseTime(String.valueOf(firstStopTime.departure_time));
 				List<TransitRouteStop> stops = new ArrayList<>();
