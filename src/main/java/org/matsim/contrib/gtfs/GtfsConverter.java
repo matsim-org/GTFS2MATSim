@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.conveyal.gtfs.model.*;
+
+import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
@@ -24,6 +26,8 @@ import org.matsim.pt.transitSchedule.api.TransitStopFacility;
 import com.conveyal.gtfs.GTFSFeed;
 
 public class GtfsConverter {
+	
+	private static final Logger log = Logger.getLogger(GtfsConverter.class);
     
 	private GTFSFeed feed;
 	private CoordinateTransformation transform;
@@ -63,7 +67,7 @@ public class GtfsConverter {
 				}
 			}
 		}
-		System.out.println("Earliest date mentioned in feed: "+startDate);
+		log.info("Earliest date mentioned in feed: "+startDate);
 
 		LocalDate endDate = LocalDate.MIN;
 		for(Service service: this.feed.services.values()) {
@@ -79,22 +83,22 @@ public class GtfsConverter {
 			}
 
 		}
-		System.out.println("Latest date mentioned in feed: " + endDate);
+		log.info("Latest date mentioned in feed: " + endDate);
 
 		// Get the used service Id for the chosen weekday and date
 		List<String> activeServiceIds = this.getActiveServiceIds(this.feed.services);
-		System.out.printf("Active Services: %d %s\n", activeServiceIds.size(), activeServiceIds);
+		log.info(String.format("Active Services: %d %s", activeServiceIds.size(), activeServiceIds));
 
 		// Get the Trips which are active today
 		List<Trip> activeTrips = feed.trips.values().stream().filter(trip -> feed.services.get(trip.service_id).activeOn(this.date)).collect(Collectors.toList());
-		System.out.printf("Active Trips: %d %s\n", activeTrips.size(), activeTrips.stream().map(trip -> trip.trip_id).collect(Collectors.toList()));
+		log.info(String.format("Active Trips: %d %s", activeTrips.size(), activeTrips.stream().map(trip -> trip.trip_id).collect(Collectors.toList())));
 
 		// Create one TransitLine for each GTFS-Route which has an active trip
 		activeTrips.stream().map(trip -> feed.routes.get(trip.route_id)).distinct().forEach(route -> {
 			TransitLine tl = ts.getFactory().createTransitLine(getReadableTransitLineId(route));
 			ts.addTransitLine(tl);
-			tl.getAttributes().putAttribute("gtfs_agency_id", String.valueOf(route.agency_id));
-			tl.getAttributes().putAttribute("gtfs_route_type", String.valueOf(route.route_type));
+			if (route.agency_id != null) tl.getAttributes().putAttribute("gtfs_agency_id", String.valueOf(route.agency_id)) ;
+			tl.getAttributes().putAttribute("gtfs_route_type", String.valueOf(route.route_type)); // route type is a required field according to GTFS specification
 			
 			String routeShortName = null;
 			if (route.route_short_name != null) {
@@ -110,9 +114,9 @@ public class GtfsConverter {
 		this.convertTrips(activeTrips);
 
 		if(activeTrips.isEmpty()){
-			System.out.println("There are no converted trips. You might need to change the date for better results.");
+			log.warn("There are no converted trips. You might need to change the date for better results.");
 		}
-		System.out.println("Conversion successfull");
+		log.info("Conversion successfull");
 	}
 	
 	
@@ -127,7 +131,7 @@ public class GtfsConverter {
 
 	private List<String> getActiveServiceIds(Map<String, Service> services) {
 		List<String> serviceIds = new ArrayList<>();
-		System.out.println("Used Date for active schedules: " + this.date.toString() + " (weekday: " + date.getDayOfWeek().toString() + "). If you want to choose another date, please specify it, before running the converter");
+		log.info("Used Date for active schedules: " + this.date.toString() + " (weekday: " + date.getDayOfWeek().toString() + "). If you want to choose another date, please specify it, before running the converter");
 		for(Service service: services.values()){
 			if(service.activeOn(date)){
 				serviceIds.add(service.service_id);
@@ -135,18 +139,17 @@ public class GtfsConverter {
 		}
 		return serviceIds;
 	}
-	
-	
-	private int asGtfsDate(LocalDate date) {
-		return date.getYear() * 10000 + this.date.getMonthValue() * 100 + this.date.getDayOfMonth();
-	}
 
 
 	private void convertTrips(List<Trip> trips) {
 		int scheduleDepartures = 0;
 		int frequencyDepartures = 0;
 		for (Trip trip : trips) {
-			if (feed.getFrequencies(trip.trip_id).isEmpty() && feed.getOrderedStopTimesForTrip(trip.trip_id).iterator().hasNext()) {		
+			if (feed.getFrequencies(trip.trip_id).isEmpty()) {
+				if (feed.getOrderedStopTimesForTrip(trip.trip_id) == null || !feed.getOrderedStopTimesForTrip(trip.trip_id).iterator().hasNext()) {
+					log.error("Found a trip with neither frequency nor ordered stop times. Will not add any Matsim TransitRoute/Departure for that trip. GTFS trip_id=" + trip.trip_id);
+					continue;
+				}
 				StopTime firstStopTime = feed.getOrderedStopTimesForTrip(trip.trip_id).iterator().next();
 				Double departureTime = Time.parseTime(String.valueOf(firstStopTime.departure_time));
 				List<TransitRouteStop> stops = new ArrayList<>();
@@ -199,8 +202,8 @@ public class GtfsConverter {
 				}
 			}
 		}
-		System.out.println("Created schedule-based departures: " + scheduleDepartures);
-		System.out.println("Created frequency-based departures: " + frequencyDepartures);
+		log.info("Created schedule-based departures: " + scheduleDepartures);
+		log.info("Created frequency-based departures: " + frequencyDepartures);
 	}
 
 
