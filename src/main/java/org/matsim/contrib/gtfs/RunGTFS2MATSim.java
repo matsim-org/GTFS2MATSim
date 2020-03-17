@@ -10,7 +10,6 @@ import org.matsim.core.utils.geometry.transformations.IdentityTransformation;
 import org.matsim.pt.transitSchedule.api.TransitScheduleWriter;
 
 import com.conveyal.gtfs.GTFSFeed;
-import com.conveyal.gtfs.model.Route;
 
 /**
  * @author NKuehnel
@@ -40,8 +39,13 @@ public class RunGTFS2MATSim {
 
 		Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
 
-		GtfsConverter converter = new GtfsConverter(feed, scenario, transformation, false);
-		converter.setDate(date);
+		GtfsConverter converter = GtfsConverter.newBuilder()
+				.setTransform(transformation)
+				.setFeed(feed)
+				.setDate(date)
+				.setUseExtendedRouteTypes(useExtendedRouteTypes)
+				.build();
+
 		converter.convert();
 
 		System.out.println("Converted stops: " + scenario.getTransitSchedule().getFacilities().size());
