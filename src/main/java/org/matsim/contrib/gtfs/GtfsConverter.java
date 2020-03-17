@@ -26,7 +26,6 @@ public class GtfsConverter {
 
     private final GTFSFeed feed;
     private final CoordinateTransformation transform;
-    private final Scenario scenario;
     private final TransitSchedule ts;
     private final Predicate<Trip> filterTrips;
     private final Predicate<String> includeAgency;
@@ -45,7 +44,6 @@ public class GtfsConverter {
     public GtfsConverter(GTFSFeed feed, Scenario scenario, CoordinateTransformation transform, boolean useExtendedRouteTypes) {
         this.feed = Objects.requireNonNull(feed, "Gtfs feed is required");
         this.transform = Objects.requireNonNull(transform, "Coordinate transformation is required");
-        this.scenario = scenario;
         this.ts = scenario.getTransitSchedule();
         this.useExtendedRouteTypes = useExtendedRouteTypes;
         this.filterTrips = (t) -> true;
@@ -57,8 +55,7 @@ public class GtfsConverter {
                           Predicate<Trip> filterTrips, Predicate<String> includeAgency, Predicate<Integer> includeRouteType) {
         this.feed = Objects.requireNonNull(feed, "Gtfs feed is required, use .setFeed(...)");
         this.transform = Objects.requireNonNull(transform, "Coordinate transformation is required, use .setTransform(...)");
-        this.scenario = Objects.requireNonNull(scenario, "Scenario is required, use .setScenario(...)");
-        this.ts = scenario.getTransitSchedule();
+        this.ts = Objects.requireNonNull(scenario, "Scenario is required, use .setScenario(...)").getTransitSchedule();
         this.date = date;
         this.useExtendedRouteTypes = useExtendedRouteTypes;
         this.filterTrips = filterTrips;
@@ -196,13 +193,15 @@ public class GtfsConverter {
                         if (stopTime.arrival_time != Integer.MIN_VALUE) {
                             arrivalOffset = Time.parseTime(String.valueOf(stopTime.arrival_time)) - departureTime;
                         } else {
-                            arrivalOffset = Time.UNDEFINED_TIME;
+                            // TODO: should use optional time
+                            arrivalOffset = Double.NEGATIVE_INFINITY;
                         }
                         double departureOffset;
                         if (stopTime.departure_time != Integer.MIN_VALUE) {
                             departureOffset = Time.parseTime(String.valueOf(stopTime.departure_time)) - departureTime;
                         } else {
-                            departureOffset = Time.UNDEFINED_TIME;
+                            // TODO: should use optional time
+                            departureOffset = Double.NEGATIVE_INFINITY;
                         }
                         TransitRouteStop routeStop = ts.getFactory().createTransitRouteStop(stop, arrivalOffset, departureOffset);
                         routeStop.setAwaitDepartureTime(true);
