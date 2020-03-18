@@ -10,6 +10,7 @@ import org.matsim.core.scenario.MutableScenario;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.geometry.transformations.IdentityTransformation;
 import org.matsim.pt.transitSchedule.api.*;
+import org.matsim.pt.utils.CreatePseudoNetwork;
 
 import java.time.LocalDate;
 
@@ -141,6 +142,28 @@ public class GtfsTest {
         converter.convert();
         Assert.assertEquals(0, scenario.getTransitSchedule().getTransitLines().size());
 
+    }
+
+
+    @Test
+    public void testFilterStops() {
+
+        Config config = ConfigUtils.createConfig();
+        config.transit().setUseTransit(true);
+        MutableScenario scenario = (MutableScenario) ScenarioUtils.createScenario(config);
+
+        GtfsConverter converter = GtfsConverter.newBuilder()
+                .setScenario(scenario)
+                .setTransform(new IdentityTransformation())
+                .setFeed(GTFSFeed.fromFile("test/input/sample-feed2.zip"))
+                .setDate(LocalDate.of(2020, 3, 16))
+                .setFilterStops(stop -> stop.id % 3 == 0)
+                .build();
+
+        converter.convert();
+
+        // Filter 33% of stops and check if still able to create a network
+        new CreatePseudoNetwork(scenario.getTransitSchedule(), scenario.getNetwork(), "pt_").createNetwork();
 
     }
 

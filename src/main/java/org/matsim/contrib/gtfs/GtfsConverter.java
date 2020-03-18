@@ -28,6 +28,7 @@ public class GtfsConverter {
     private final CoordinateTransformation transform;
     private final TransitSchedule ts;
     private final Predicate<Trip> filterTrips;
+    private final Predicate<Stop> filterStops;
     private final Predicate<String> includeAgency;
     private final Predicate<Integer> includeRouteType;
     private final boolean useExtendedRouteTypes;
@@ -47,18 +48,20 @@ public class GtfsConverter {
         this.ts = scenario.getTransitSchedule();
         this.useExtendedRouteTypes = useExtendedRouteTypes;
         this.filterTrips = (t) -> true;
+        this.filterStops = (t) -> true;
         this.includeAgency = (t) -> true;
         this.includeRouteType = (t) -> true;
     }
 
     private GtfsConverter(GTFSFeed feed, CoordinateTransformation transform, Scenario scenario, LocalDate date, boolean useExtendedRouteTypes,
-                          Predicate<Trip> filterTrips, Predicate<String> includeAgency, Predicate<Integer> includeRouteType) {
+                          Predicate<Trip> filterTrips, Predicate<Stop> filterStops, Predicate<String> includeAgency, Predicate<Integer> includeRouteType) {
         this.feed = Objects.requireNonNull(feed, "Gtfs feed is required, use .setFeed(...)");
         this.transform = Objects.requireNonNull(transform, "Coordinate transformation is required, use .setTransform(...)");
         this.ts = Objects.requireNonNull(scenario, "Scenario is required, use .setScenario(...)").getTransitSchedule();
         this.date = date;
         this.useExtendedRouteTypes = useExtendedRouteTypes;
         this.filterTrips = filterTrips;
+        this.filterStops = filterStops;
         this.includeAgency = includeAgency;
         this.includeRouteType = includeRouteType;
     }
@@ -127,7 +130,6 @@ public class GtfsConverter {
             ts.addTransitLine(tl);
             if (route.agency_id != null) tl.getAttributes().putAttribute("gtfs_agency_id", String.valueOf(route.agency_id));
             tl.getAttributes().putAttribute("gtfs_route_type", String.valueOf(route.route_type)); // route type is a required field according to GTFS specification
-
             String routeShortName = null;
             if (route.route_short_name != null) {
                 routeShortName = route.route_short_name;
@@ -154,6 +156,9 @@ public class GtfsConverter {
 
     private void convertStops() {
         for (Stop stop : feed.stops.values()) {
+            if (!filterStops.test(stop))
+                continue;
+
             TransitStopFacility t = this.ts.getFactory().createTransitStopFacility(Id.create(stop.stop_id, TransitStopFacility.class), transform.transform(new Coord(stop.stop_lon, stop.stop_lat)), false);
             t.setName(stop.stop_name);
             ts.addStopFacility(t);
@@ -189,6 +194,11 @@ public class GtfsConverter {
                     for (StopTime stopTime : feed.getInterpolatedStopTimesForTrip(trip.trip_id)) {
                         Id<TransitStopFacility> stopId = Id.create(stopTime.stop_id, TransitStopFacility.class);
                         TransitStopFacility stop = ts.getFacilities().get(stopId);
+
+                        // This stop was filtered and will be ignored
+                        if (stop == null)
+                            continue;
+
                         double arrivalOffset;
                         if (stopTime.arrival_time != Integer.MIN_VALUE) {
                             arrivalOffset = Time.parseTime(String.valueOf(stopTime.arrival_time)) - departureTime;
@@ -220,6 +230,10 @@ public class GtfsConverter {
                 for (StopTime stopTime : feed.getOrderedStopTimesForTrip(trip.trip_id)) {
                     Id<TransitStopFacility> stopId = Id.create(stopTime.stop_id, TransitStopFacility.class);
                     TransitStopFacility stop = ts.getFacilities().get(stopId);
+
+                    if (stop == null)
+                        continue;
+
                     TransitRouteStop routeStop = ts.getFactory().createTransitRouteStop(stop, Time.parseTime(String.valueOf(stopTime.arrival_time)), Time.parseTime(String.valueOf(stopTime.departure_time)));
                     // transit drivers should always await departure, because otherwise they can run far ahead of schedule
                     routeStop.setAwaitDepartureTime(true);
@@ -290,6 +304,7 @@ public class GtfsConverter {
         private boolean useExtendedRouteTypes = false;
         private Scenario scenario;
         private Predicate<Trip> filterTrips = (t) -> true;
+        private Predicate<Stop> filterStops = (t) -> true;
         private Predicate<String> includeAgency = (t) -> true;
         private Predicate<Integer> includeRouteType = (t) -> true;
 
@@ -301,7 +316,7 @@ public class GtfsConverter {
          */
         public GtfsConverter build() {
             return new GtfsConverter(feed, transform, scenario, date, useExtendedRouteTypes,
-                    filterTrips, includeAgency, includeRouteType);
+                    filterTrips, filterStops, includeAgency, includeRouteType);
         }
 
         /**
@@ -365,6 +380,14 @@ public class GtfsConverter {
          */
         public Builder setIncludeRouteType(Predicate<Integer> includeRouteType) {
             this.includeRouteType = includeRouteType;
+            return this;
+        }
+
+        /**
+         * Filter to check if {@link Stop} should be included in the schedule.
+         */
+        public Builder setFilterStops(Predicate<Stop> filterStops) {
+            this.filterStops = filterStops;
             return this;
         }
 
