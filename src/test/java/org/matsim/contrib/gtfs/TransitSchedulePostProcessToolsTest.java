@@ -174,8 +174,8 @@ public class TransitSchedulePostProcessToolsTest {
 
             NetworkRoute networkRoute = RouteUtils.createLinkNetworkRouteImpl(firstStopLinkId, new ArrayList<Id<Link>>(), lastStopLinkId);
             List<TransitRouteStop> stopsRed = new ArrayList<>(2);
-            stopsRed.add(sf.createTransitRouteStop(firstStop, Time.getUndefinedTime(), 0.0));
-            stopsRed.add(sf.createTransitRouteStop(lastStop, 600, Time.getUndefinedTime()));
+            stopsRed.add(sf.createTransitRouteStop(firstStop, Double.NEGATIVE_INFINITY, 0.0));
+            stopsRed.add(sf.createTransitRouteStop(lastStop, 600, Double.NEGATIVE_INFINITY));
             TransitRoute redABRoute = sf.createTransitRoute(Id.create("redFirstToLast", TransitRoute.class), networkRoute, stopsRed, "hoovercraft");
             redABRoute.addDeparture(sf.createDeparture(Id.create("early", Departure.class), 6.0*3600));
             redABRoute.addDeparture(sf.createDeparture(Id.create("midday", Departure.class), 12.0*3600));

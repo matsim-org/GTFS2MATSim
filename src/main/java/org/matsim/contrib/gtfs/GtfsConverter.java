@@ -161,13 +161,13 @@ public class GtfsConverter {
 						if (stopTime.arrival_time != Integer.MIN_VALUE) {
 							arrivalOffset = Time.parseTime(String.valueOf(stopTime.arrival_time)) - departureTime;
 						} else {
-							arrivalOffset = Time.UNDEFINED_TIME;
+							arrivalOffset = Double.NEGATIVE_INFINITY;
 						}
 						double departureOffset;
 						if (stopTime.departure_time != Integer.MIN_VALUE) {
 							departureOffset = Time.parseTime(String.valueOf(stopTime.departure_time)) - departureTime;
 						} else {
-							departureOffset = Time.UNDEFINED_TIME;
+							departureOffset = Double.NEGATIVE_INFINITY;
 						}
 						TransitRouteStop routeStop = ts.getFactory().createTransitRouteStop(stop, arrivalOffset, departureOffset);
 						routeStop.setAwaitDepartureTime(true);
