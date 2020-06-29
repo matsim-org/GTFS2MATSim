@@ -62,7 +62,7 @@ public class TransitSchedulePostProcessTools {
 				for (Departure dep: route.getDepartures().values()) {
 					double oldDepartureTime = dep.getDepartureTime();
 					// do not copy Departures which arrive before midnight ()
-					double arrivalAtLastStop = dep.getDepartureTime() + route.getStops().get(route.getStops().size() - 1).getArrivalOffset();
+					double arrivalAtLastStop = dep.getDepartureTime() + route.getStops().get(route.getStops().size() - 1).getArrivalOffset().seconds();
 					if (oldDepartureTime > startTimeOfCopying && 
 							(departureExclusionMarker== null || !dep.getId().toString().contains(departureExclusionMarker)) &&
 							(copyDespiteArrivalBeforeMidnight || arrivalAtLastStop >= 24*3600) ) {
