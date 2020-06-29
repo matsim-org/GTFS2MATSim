@@ -7,10 +7,13 @@ import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.geometry.CoordinateTransformation;
 import org.matsim.core.utils.geometry.transformations.IdentityTransformation;
+import org.matsim.core.utils.geometry.transformations.TransformationFactory;
 import org.matsim.pt.transitSchedule.api.TransitScheduleWriter;
 
 import com.conveyal.gtfs.GTFSFeed;
 import com.conveyal.gtfs.model.Route;
+import org.matsim.pt.utils.CreatePseudoNetwork;
+import org.matsim.pt.utils.CreateVehiclesForSchedule;
 
 /**
  * @author NKuehnel
@@ -51,6 +54,23 @@ public class RunGTFS2MATSim {
 
 		System.out.println("Done.");
     }
+
+	public static void convertGTFSandAddToScenario(Scenario scenario, String gtfsZip, LocalDate date, CoordinateTransformation coordinateTransformation, boolean createNetworkAndVehicles) {
+		GTFSFeed feed = GTFSFeed.fromFile(gtfsZip);
+		feed.feedInfo.values().stream().findFirst().ifPresent((feedInfo) -> {
+			System.out.println("Feed start date: " + feedInfo.feed_start_date);
+			System.out.println("Feed end date: " + feedInfo.feed_end_date);
+		});
+		GtfsConverter converter = new GtfsConverter(feed, scenario, coordinateTransformation, false);
+		converter.setDate(date);
+		converter.convert();
+		TransitSchedulePostProcessTools.copyLateDeparturesToStartOfDay(scenario.getTransitSchedule(), 86400.0, "copied", false);
+		TransitSchedulePostProcessTools.copyEarlyDeparturesToFollowingNight(scenario.getTransitSchedule(), 21600.0, "copied");
+		if (createNetworkAndVehicles) {
+			(new CreatePseudoNetwork(scenario.getTransitSchedule(), scenario.getNetwork(), "pt_")).createNetwork();
+			(new CreateVehiclesForSchedule(scenario.getTransitSchedule(), scenario.getTransitVehicles())).run();
+		}
+	}
 
 	public static void main(String[] args) {
 		String inputZipFile = args[0];
