@@ -90,7 +90,8 @@ public enum RouteType {
 	SIGHTSEEING_TRAM_SERVICE(904, "Sightseeing Tram Service", TRAM),
 	SHUTTLE_TRAM_SERVICE(905, "Shuttle Tram Service", TRAM),
 	ALL_TRAM_SERVICE(906, "All Tram Services", TRAM),
-	
+	OTHER_TRAM_SERVICE(907, "Other Tram Services", TRAM),
+
 	WATER_TRANSPORT_SERVICE(1000, "Water Transport Service", FERRY),
 	INTERNATIONAL_CAR_FERRY_SERVICE(1001, "International Car Ferry Service", FERRY),
 	NATIONAL_CAR_FERRY_SERVICE(1002, "National Car Ferry Service", FERRY),
