@@ -13,10 +13,7 @@ import org.matsim.pt.transitSchedule.api.*;
 import java.nio.file.Path;
 import java.text.Normalizer;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -32,9 +29,15 @@ public class GtfsConverter {
     private final Predicate<String> includeAgency;
     private final Predicate<Integer> includeRouteType;
     private final boolean useExtendedRouteTypes;
+    private final boolean mergeStops;
 
 
     private LocalDate date = LocalDate.now();
+
+    /**
+     * Stop that that have been mapped to the same facility.
+     */
+    private final Map<String, Id<TransitStopFacility>> mappedStops = new HashMap<>();
 
     /**
      * Constructor.
@@ -51,10 +54,12 @@ public class GtfsConverter {
         this.filterStops = (t) -> true;
         this.includeAgency = (t) -> true;
         this.includeRouteType = (t) -> true;
+        this.mergeStops = false;
     }
 
     private GtfsConverter(GTFSFeed feed, CoordinateTransformation transform, Scenario scenario, LocalDate date, boolean useExtendedRouteTypes,
-                          Predicate<Trip> filterTrips, Predicate<Stop> filterStops, Predicate<String> includeAgency, Predicate<Integer> includeRouteType) {
+                          Predicate<Trip> filterTrips, Predicate<Stop> filterStops, Predicate<String> includeAgency, Predicate<Integer> includeRouteType,
+                          boolean mergeStops) {
         this.feed = Objects.requireNonNull(feed, "Gtfs feed is required, use .setFeed(...)");
         this.transform = Objects.requireNonNull(transform, "Coordinate transformation is required, use .setTransform(...)");
         this.ts = Objects.requireNonNull(scenario, "Scenario is required, use .setScenario(...)").getTransitSchedule();
@@ -64,6 +69,7 @@ public class GtfsConverter {
         this.filterStops = filterStops;
         this.includeAgency = includeAgency;
         this.includeRouteType = includeRouteType;
+        this.mergeStops = mergeStops;
     }
 
     /**
@@ -155,13 +161,24 @@ public class GtfsConverter {
     }
 
     private void convertStops() {
+
+        Map<Coord, Id<TransitStopFacility>> coords = new HashMap<>();
+
         for (Stop stop : feed.stops.values()) {
             if (!filterStops.test(stop))
                 continue;
 
-            TransitStopFacility t = this.ts.getFactory().createTransitStopFacility(Id.create(stop.stop_id, TransitStopFacility.class), transform.transform(new Coord(stop.stop_lon, stop.stop_lat)), false);
+            Coord coord = this.transform.transform(new Coord(stop.stop_lon, stop.stop_lat));
+
+            // Already have a stop with same coord
+            if (mergeStops && coords.containsKey(coord)) {
+                mappedStops.put(stop.stop_id, coords.get(coord));
+            }
+
+            TransitStopFacility t = this.ts.getFactory().createTransitStopFacility(Id.create(stop.stop_id, TransitStopFacility.class), coord, false);
             t.setName(stop.stop_name);
             ts.addStopFacility(t);
+            coords.put(coord, t.getId());
         }
     }
 
@@ -192,7 +209,7 @@ public class GtfsConverter {
                 List<TransitRouteStop> stops = new ArrayList<>();
                 try {
                     for (StopTime stopTime : feed.getInterpolatedStopTimesForTrip(trip.trip_id)) {
-                        Id<TransitStopFacility> stopId = Id.create(stopTime.stop_id, TransitStopFacility.class);
+                        Id<TransitStopFacility> stopId = findTransitStop(stopTime);
                         TransitStopFacility stop = ts.getFacilities().get(stopId);
 
                         // This stop was filtered and will be ignored
@@ -223,7 +240,7 @@ public class GtfsConverter {
             } else {
                 List<TransitRouteStop> stops = new ArrayList<>();
                 for (StopTime stopTime : feed.getOrderedStopTimesForTrip(trip.trip_id)) {
-                    Id<TransitStopFacility> stopId = Id.create(stopTime.stop_id, TransitStopFacility.class);
+                    Id<TransitStopFacility> stopId = findTransitStop(stopTime);
                     TransitStopFacility stop = ts.getFacilities().get(stopId);
 
                     if (stop == null)
@@ -247,6 +264,13 @@ public class GtfsConverter {
         }
         log.info("Created schedule-based departures: " + scheduleDepartures);
         log.info("Created frequency-based departures: " + frequencyDepartures);
+    }
+
+    private Id<TransitStopFacility> findTransitStop(StopTime stopTime) {
+        if (!mergeStops || !mappedStops.containsKey(stopTime.stop_id))
+            return Id.create(stopTime.stop_id, TransitStopFacility.class);
+
+        return mappedStops.get(stopTime.stop_id);
     }
 
 
@@ -297,6 +321,7 @@ public class GtfsConverter {
         private CoordinateTransformation transform;
         private LocalDate date = LocalDate.now();
         private boolean useExtendedRouteTypes = false;
+        private boolean mergeStops = false;
         private Scenario scenario;
         private Predicate<Trip> filterTrips = (t) -> true;
         private Predicate<Stop> filterStops = (t) -> true;
@@ -311,7 +336,7 @@ public class GtfsConverter {
          */
         public GtfsConverter build() {
             return new GtfsConverter(feed, transform, scenario, date, useExtendedRouteTypes,
-                    filterTrips, filterStops, includeAgency, includeRouteType);
+                    filterTrips, filterStops, includeAgency, includeRouteType, mergeStops);
         }
 
         /**
@@ -388,6 +413,14 @@ public class GtfsConverter {
 
         public Builder setUseExtendedRouteTypes(boolean useExtendedRouteTypes) {
             this.useExtendedRouteTypes = useExtendedRouteTypes;
+            return this;
+        }
+
+        /**
+         * Merge stops on the same coordinate.
+         */
+        public Builder setMergeStops(boolean mergeStops) {
+            this.mergeStops = mergeStops;
             return this;
         }
     }
