@@ -199,23 +199,18 @@ public class GtfsConverter {
                         if (stop == null)
                             continue;
 
-                        double arrivalOffset;
-                        if (stopTime.arrival_time != Integer.MIN_VALUE) {
-                            arrivalOffset = Time.parseTime(String.valueOf(stopTime.arrival_time)) - departureTime;
-                        } else {
-                            // TODO: should use optional time
-                            arrivalOffset = Double.NEGATIVE_INFINITY;
-                        }
-                        double departureOffset;
-                        if (stopTime.departure_time != Integer.MIN_VALUE) {
-                            departureOffset = Time.parseTime(String.valueOf(stopTime.departure_time)) - departureTime;
-                        } else {
-                            // TODO: should use optional time
-                            departureOffset = Double.NEGATIVE_INFINITY;
-                        }
-                        TransitRouteStop routeStop = ts.getFactory().createTransitRouteStop(stop, arrivalOffset, departureOffset);
-                        routeStop.setAwaitDepartureTime(true);
-                        stops.add(routeStop);
+						TransitRouteStop.Builder builder = ts.getFactory().createTransitRouteStopBuilder(stop);
+						if (stopTime.arrival_time != Integer.MIN_VALUE) {
+							double arrivalOffset = Time.parseTime(String.valueOf(stopTime.arrival_time)) - departureTime;
+							builder.arrivalOffset(arrivalOffset);
+						}
+						if (stopTime.departure_time != Integer.MIN_VALUE) {
+							double departureOffset = Time.parseTime(String.valueOf(stopTime.departure_time)) - departureTime;
+							builder.departureOffset(departureOffset);
+						}
+						TransitRouteStop routeStop = builder.build();
+						routeStop.setAwaitDepartureTime(true);
+						stops.add(routeStop);
                     }
                 } catch (GTFSFeed.FirstAndLastStopsDoNotHaveTimes firstAndLastStopsDoNotHaveTimes) {
                     throw new RuntimeException(firstAndLastStopsDoNotHaveTimes);

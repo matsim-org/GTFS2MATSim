@@ -66,8 +66,8 @@ public class GtfsTest {
                 Assert.assertEquals(tr1.getTransportMode(), tr2.getTransportMode());
                 for (TransitRouteStop trStop : tr1.getStops()) {
                     Assert.assertEquals(trStop.isAwaitDepartureTime(), tr2.getStops().get(tr1.getStops().indexOf(trStop)).isAwaitDepartureTime());
-                    Assert.assertEquals(trStop.getDepartureOffset(), tr2.getStops().get(tr1.getStops().indexOf(trStop)).getDepartureOffset(), 0.0);
-                    Assert.assertEquals(trStop.getArrivalOffset(), tr2.getStops().get(tr1.getStops().indexOf(trStop)).getArrivalOffset(), 0.0);
+                    Assert.assertEquals(trStop.getDepartureOffset().seconds(), tr2.getStops().get(tr1.getStops().indexOf(trStop)).getDepartureOffset().seconds(), 0.0);
+                    Assert.assertEquals(trStop.getArrivalOffset().seconds(), tr2.getStops().get(tr1.getStops().indexOf(trStop)).getArrivalOffset().seconds(), 0.0);
                 }
                 Assert.assertEquals(tr1.getDepartures().size(), tr2.getDepartures().size());
             }
