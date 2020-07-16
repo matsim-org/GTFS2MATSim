@@ -2,7 +2,8 @@ package org.matsim.contrib.gtfs;
 
 import com.conveyal.gtfs.GTFSFeed;
 import com.conveyal.gtfs.model.*;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
@@ -19,7 +20,7 @@ import java.util.stream.Collectors;
 
 public class GtfsConverter {
 
-    private static final Logger log = Logger.getLogger(GtfsConverter.class);
+    private static final Logger log = LogManager.getLogger(GtfsConverter.class);
 
     private final GTFSFeed feed;
     private final CoordinateTransformation transform;
@@ -173,6 +174,7 @@ public class GtfsConverter {
             // Already have a stop with same coord
             if (mergeStops && coords.containsKey(coord)) {
                 mappedStops.put(stop.stop_id, coords.get(coord));
+                continue;
             }
 
             TransitStopFacility t = this.ts.getFactory().createTransitStopFacility(Id.create(stop.stop_id, TransitStopFacility.class), coord, false);
