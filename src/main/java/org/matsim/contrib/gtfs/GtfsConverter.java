@@ -179,7 +179,11 @@ public class GtfsConverter {
 
             TransitStopFacility t = this.ts.getFactory().createTransitStopFacility(Id.create(stop.stop_id, TransitStopFacility.class), coord, false);
             t.setName(stop.stop_name);
-            ts.addStopFacility(t);
+
+            // add only if not yet present
+            if (!ts.getFacilities().containsKey(t.getId()))
+               ts.addStopFacility(t);
+
             coords.put(coord, t.getId());
         }
     }
