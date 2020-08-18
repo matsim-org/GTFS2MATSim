@@ -157,7 +157,7 @@ public class GtfsTest {
                 .setTransform(new IdentityTransformation())
                 .setFeed(GTFSFeed.fromFile("test/input/sample-feed2.zip"))
                 .setDate(LocalDate.of(2020, 3, 16))
-                .setFilterStops(stop -> stop.id % 3 == 0)
+                .setIncludeStops(stop -> stop.id % 3 == 0)
                 .build();
 
         converter.convert();

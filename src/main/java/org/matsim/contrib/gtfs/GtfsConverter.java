@@ -25,8 +25,8 @@ public class GtfsConverter {
     private final GTFSFeed feed;
     private final CoordinateTransformation transform;
     private final TransitSchedule ts;
-    private final Predicate<Trip> filterTrips;
-    private final Predicate<Stop> filterStops;
+    private final Predicate<Trip> includeTrips;
+    private final Predicate<Stop> includeStops;
     private final Predicate<String> includeAgency;
     private final Predicate<Integer> includeRouteType;
     private final boolean useExtendedRouteTypes;
@@ -51,23 +51,23 @@ public class GtfsConverter {
         this.transform = Objects.requireNonNull(transform, "Coordinate transformation is required");
         this.ts = scenario.getTransitSchedule();
         this.useExtendedRouteTypes = useExtendedRouteTypes;
-        this.filterTrips = (t) -> true;
-        this.filterStops = (t) -> true;
+        this.includeTrips = (t) -> true;
+        this.includeStops = (t) -> true;
         this.includeAgency = (t) -> true;
         this.includeRouteType = (t) -> true;
         this.mergeStops = false;
     }
 
     private GtfsConverter(GTFSFeed feed, CoordinateTransformation transform, Scenario scenario, LocalDate date, boolean useExtendedRouteTypes,
-                          Predicate<Trip> filterTrips, Predicate<Stop> filterStops, Predicate<String> includeAgency, Predicate<Integer> includeRouteType,
+                          Predicate<Trip> includeTrips, Predicate<Stop> includeStops, Predicate<String> includeAgency, Predicate<Integer> includeRouteType,
                           boolean mergeStops) {
         this.feed = Objects.requireNonNull(feed, "Gtfs feed is required, use .setFeed(...)");
         this.transform = Objects.requireNonNull(transform, "Coordinate transformation is required, use .setTransform(...)");
         this.ts = Objects.requireNonNull(scenario, "Scenario is required, use .setScenario(...)").getTransitSchedule();
         this.date = date;
         this.useExtendedRouteTypes = useExtendedRouteTypes;
-        this.filterTrips = filterTrips;
-        this.filterStops = filterStops;
+        this.includeTrips = includeTrips;
+        this.includeStops = includeStops;
         this.includeAgency = includeAgency;
         this.includeRouteType = includeRouteType;
         this.mergeStops = mergeStops;
@@ -125,7 +125,7 @@ public class GtfsConverter {
         // Get the Trips which are active today
         List<Trip> activeTrips = feed.trips.values().stream()
                 .filter(trip -> feed.services.get(trip.service_id).activeOn(this.date))
-                .filter(this.filterTrips)
+                .filter(this.includeTrips)
                 .filter(this::filterAgencyAndType)
                 .collect(Collectors.toList());
 
@@ -166,7 +166,7 @@ public class GtfsConverter {
         Map<Coord, Id<TransitStopFacility>> coords = new HashMap<>();
 
         for (Stop stop : feed.stops.values()) {
-            if (!filterStops.test(stop))
+            if (!includeStops.test(stop))
                 continue;
 
             Coord coord = this.transform.transform(new Coord(stop.stop_lon, stop.stop_lat));
@@ -329,8 +329,8 @@ public class GtfsConverter {
         private boolean useExtendedRouteTypes = false;
         private boolean mergeStops = false;
         private Scenario scenario;
-        private Predicate<Trip> filterTrips = (t) -> true;
-        private Predicate<Stop> filterStops = (t) -> true;
+        private Predicate<Trip> includeTrips = (t) -> true;
+        private Predicate<Stop> includeStops = (t) -> true;
         private Predicate<String> includeAgency = (t) -> true;
         private Predicate<Integer> includeRouteType = (t) -> true;
 
@@ -342,7 +342,7 @@ public class GtfsConverter {
          */
         public GtfsConverter build() {
             return new GtfsConverter(feed, transform, scenario, date, useExtendedRouteTypes,
-                    filterTrips, filterStops, includeAgency, includeRouteType, mergeStops);
+                    includeTrips, includeStops, includeAgency, includeRouteType, mergeStops);
         }
 
         /**
@@ -388,8 +388,8 @@ public class GtfsConverter {
         /**
          * Predicate for filtering {@link Trip}.
          */
-        public Builder setFilterTrips(Predicate<Trip> filterTrips) {
-            this.filterTrips = filterTrips;
+        public Builder setIncludeTrips(Predicate<Trip> includeTrips) {
+            this.includeTrips = includeTrips;
             return this;
         }
 
@@ -412,8 +412,8 @@ public class GtfsConverter {
         /**
          * Filter to check if {@link Stop} should be included in the schedule.
          */
-        public Builder setFilterStops(Predicate<Stop> filterStops) {
-            this.filterStops = filterStops;
+        public Builder setIncludeStops(Predicate<Stop> includeStops) {
+            this.includeStops = includeStops;
             return this;
         }
 
