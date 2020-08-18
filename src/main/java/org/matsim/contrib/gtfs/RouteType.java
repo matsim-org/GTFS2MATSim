@@ -195,7 +195,11 @@ public enum RouteType {
 	public String getTypeName() {
 		return name;
 	}
-	
+
+	public int getCode() {
+		return code;
+	}
+
 	public String getSimpleTypeName() {
 		if (simpleRouteType == null) {
 			return name;
