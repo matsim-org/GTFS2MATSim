@@ -7,13 +7,11 @@ import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.geometry.CoordinateTransformation;
 import org.matsim.core.utils.geometry.transformations.IdentityTransformation;
-import org.matsim.core.utils.geometry.transformations.TransformationFactory;
 import org.matsim.pt.transitSchedule.api.TransitScheduleWriter;
-
-import com.conveyal.gtfs.GTFSFeed;
-import com.conveyal.gtfs.model.Route;
 import org.matsim.pt.utils.CreatePseudoNetwork;
 import org.matsim.pt.utils.CreateVehiclesForSchedule;
+
+import com.conveyal.gtfs.GTFSFeed;
 
 /**
  * @author NKuehnel
@@ -44,6 +42,7 @@ public class RunGTFS2MATSim {
 		Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
 
 		GtfsConverter converter = GtfsConverter.newBuilder()
+				.setScenario(scenario)
 				.setTransform(transformation)
 				.setFeed(feed)
 				.setDate(date)
