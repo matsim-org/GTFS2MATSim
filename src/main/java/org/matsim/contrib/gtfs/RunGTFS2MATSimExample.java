@@ -49,14 +49,17 @@ public final class RunGTFS2MATSimExample {
 
 	public static void main(String[] args) {
 	
-		//this was tested for the latest VBB GTFS, available at 
+		// this was tested for the latest VBB GTFS, available at 
 		// http://www.vbb.de/de/article/fahrplan/webservices/datensaetze/1186967.html
 		
 		//input data
-		String gtfsZipFile = "";
+		String gtfsZipFile = "testing/gtfs_Berlin.zip";
 		CoordinateTransformation ct = TransformationFactory.getCoordinateTransformation(TransformationFactory.WGS84, "EPSG:25833");
-		LocalDate date = LocalDate.parse("2020-06-25");
-
+		LocalDate date = LocalDate.parse("2020-11-02");
+		Boolean runVehicleCirculation = true;
+		Boolean overrideMinDelay = false;
+		int minTurnOverTime = 10;
+		
 		//output files 
 		String scheduleFile = "transitSchedule.xml.gz";
 		String networkFile = "network.xml.gz";
@@ -67,9 +70,15 @@ public final class RunGTFS2MATSimExample {
 		RunGTFS2MATSim.convertGTFSandAddToScenario(scenario,gtfsZipFile,date,ct,true);
 
 		// copy late/early departures to have at complete schedule from ca. 0:00 to ca. 30:00 
-		TransitSchedulePostProcessTools.copyLateDeparturesToStartOfDay(scenario.getTransitSchedule(), 24 * 3600, "copied", false);
-		TransitSchedulePostProcessTools.copyEarlyDeparturesToFollowingNight(scenario.getTransitSchedule(), 6 * 3600, "copied");
+		// Unfortunately I was having issues with this command. It gives me a fatal error.@gmarburger
+//		TransitSchedulePostProcessTools.copyLateDeparturesToStartOfDay(scenario.getTransitSchedule(), 24 * 3600, "copied", false);
+//		TransitSchedulePostProcessTools.copyEarlyDeparturesToFollowingNight(scenario.getTransitSchedule(), 6 * 3600, "copied");
 
+		/** If runVehicleCirculation is set to true it will create vehicle circulations instead of unique vehicle Ids.
+		 *  It was created here and not in RunGTFS2MATSim.java because it will modify not only the Transit-Schedule but also Network and Vehicles.
+		 */
+		if(runVehicleCirculation) CreateVehicleCirculation.create(scenario, minTurnOverTime, overrideMinDelay);
+		
 		//Write out network, vehicles and schedule
 		new NetworkWriter(scenario.getNetwork()).write(networkFile);
 		new TransitScheduleWriter(scenario.getTransitSchedule()).writeFile(scheduleFile);
