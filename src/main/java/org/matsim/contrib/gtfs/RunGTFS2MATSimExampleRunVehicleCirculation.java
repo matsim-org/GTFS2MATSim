@@ -30,33 +30,23 @@ import org.matsim.core.network.io.NetworkWriter;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.geometry.CoordinateTransformation;
 import org.matsim.core.utils.geometry.transformations.TransformationFactory;
-import org.matsim.pt.transitSchedule.api.TransitScheduleReader;
 import org.matsim.pt.transitSchedule.api.TransitScheduleWriter;
-import org.matsim.pt.utils.CreatePseudoNetwork;
-import org.matsim.pt.utils.CreateVehiclesForSchedule;
 import org.matsim.vehicles.MatsimVehicleWriter;
-import org.matsim.vehicles.VehicleWriterV1;
 
 /**
- * @author  jbischoff
- * This is an example script that utilizes GTFS2MATSim and creates a pseudo network and vehicles using MATSim standard API functionality.
+ * @author  gmarburger
+ * This is an example script that utilizes GTFS2MATSim, creates a Scenario and thus creates vehicle circulations inside this scenario. Vehicle circulations are only within the
+ * same TransitLine.
+ * Since I had problems running copyLateDeparturesToStartOfDay / copyEarlyDeparturesToFollowingNight I commented these out.
  */
 
-public final class RunGTFS2MATSimExample {
-
-	private RunGTFS2MATSimExample() {
-	}
+public class RunGTFS2MATSimExampleRunVehicleCirculation {
 
 	public static void main(String[] args) {
-	
-		// this was tested for the latest VBB GTFS, available at 
-		// http://www.vbb.de/de/article/fahrplan/webservices/datensaetze/1186967.html
-		
 		//input data
 		String gtfsZipFile = "testing/gtfs_Berlin.zip";
 		CoordinateTransformation ct = TransformationFactory.getCoordinateTransformation(TransformationFactory.WGS84, "EPSG:25833");
 		LocalDate date = LocalDate.parse("2020-11-02");
-		Boolean runVehicleCirculation = true;
 		Boolean overrideMinDelay = false;
 		int minTurnOverTime = 10;
 		
@@ -69,12 +59,18 @@ public final class RunGTFS2MATSimExample {
 		//Convert GTFS
 		RunGTFS2MATSim.convertGTFSandAddToScenario(scenario,gtfsZipFile,date,ct,true);
 
-		TransitSchedulePostProcessTools.copyLateDeparturesToStartOfDay(scenario.getTransitSchedule(), 24 * 3600, "copied", false);
-		TransitSchedulePostProcessTools.copyEarlyDeparturesToFollowingNight(scenario.getTransitSchedule(), 6 * 3600, "copied");
+		// copy late/early departures to have at complete schedule from ca. 0:00 to ca. 30:00 
+		// Unfortunately I was having issues with this command. It gives me a fatal error.@gmarburger
+//		TransitSchedulePostProcessTools.copyLateDeparturesToStartOfDay(scenario.getTransitSchedule(), 24 * 3600, "copied", false);
+//		TransitSchedulePostProcessTools.copyEarlyDeparturesToFollowingNight(scenario.getTransitSchedule(), 6 * 3600, "copied");
 
+
+		CreateVehicleCirculation.create(scenario, minTurnOverTime, overrideMinDelay);
+		
 		//Write out network, vehicles and schedule
 		new NetworkWriter(scenario.getNetwork()).write(networkFile);
 		new TransitScheduleWriter(scenario.getTransitSchedule()).writeFile(scheduleFile);
 		new MatsimVehicleWriter(scenario.getTransitVehicles()).writeFile(transitVehiclesFile);
 	}
+
 }
