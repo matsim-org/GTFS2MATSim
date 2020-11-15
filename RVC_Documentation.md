@@ -12,7 +12,7 @@ output: markdown
 <p align="justify">This is the documentation for the program RunVehicleCirculation which creates vehicle circulations for MATSim scenarios. RunVehicleCirculation is integrated into the program GTFS2MATSim, such that TransitSchedules may be created with vehicle circulations. </p>
 <p align="justify">Each method has its own explanation. Firstly, input is written in italics along with an explanation of the input and what is expected from the user. Secondly a short description of the method follows including some of the key elements. of the function. Some methods had design choices which are also briefly explained. </p>
 
-<details open>
+<details>
 <summary><strong>create()</strong></summary>
 
 <br>
@@ -23,7 +23,7 @@ output: markdown
 <p align="justify">This is the main part of the program. It will call other functions so as to create vehicle workings for the scenario considering the integer minTimeToWait. If overrideDelay is set to true the program will override the integer and set it to 900 seconds for TransitRoutes from the S-Bahn and U-Bahn.</p>
 <br>
 
-<details open>
+<details>
 <summary> Design Choices </summary>
 <p align="justify">Firstly two Maps are being created to document which new TransitVehicles should be added to the TransitVehicles dataset as well as which nodes should be connected. At the end of the code it will call another function addTransitVehicles() to add the previously created vehicles.</p>
 <p align="justify">While iterating through the TransitSchedule this function will call other functions. Firstly will it call getMapOfAllDeparturesOnLine() to create a TreeMap. Instead of iterating through each TransitLine I found it easier to simply iterate through a Map with Departures sorted by DepartureTime.</p>
@@ -37,7 +37,7 @@ output: markdown
 
 ---
 
-<details open>
+<details>
 <summary> <strong>getMapOfAllDeparturesOnLine()</strong></summary>
 <br>
 <i>transitLine</i> A MATSim TransitLine <br>
@@ -45,14 +45,14 @@ output: markdown
 
 <p align="justify">Since this program is being used to create vehicle workings for an entire TransitLine, this method collects every Departure of every TransitRoute and orders them by departure time. </p>
 <br>
-<details open>
+<details>
 <summary> Design Choices </summary>
 <p align="justify"> Due to complications with other methods and writing my own comparator, I decided to use a String replacing a comparator for the TreeMap. Generally this should not be an issue, even though it might not appear clean. The keys in the Map are the departure times from the Departures, they are ordered as Strings. The Strings consist of 27 characters, the first 7 indicate which time the TransitVehicle leaves the station. The other 20 are only used to create a unique key for the Departure. Currently DepartureIDs are unique, with a length of 11 characters. These last 20 are however needed, since it is possible to have the exact same departure time at two different stops.</p>
 </details>
 <br>
 
 ---
-<details open>
+<details>
 <summary><strong>getUmlaufVecId()</strong></summary>
 <br>
 
@@ -64,7 +64,7 @@ output: markdown
 <br>
 
 ---
-<details open>
+<details>
 <summary><strong>getRouteFromDeparture()</strong></summary>
 <br>
 <i> transitLine </i> A MATSim TransitLine <br>
@@ -73,7 +73,7 @@ output: markdown
 
 <p align="justify"> Returns the TransitRoute which corresponds with departure. </p>
 <br>
-<details open>
+<details>
 <summary> Design Choices </summary>
 <p align="justify"> Currently GTFS2MATSim Departures already contain information about the TransitRoute. A simple String parser can return information about which TransitRoute is being served by a TransitVehicle. After looking at other programs that create TransitVehicles I preferred a more complicated approach at returning the TransitRoute, since so as future programs on this basis are less prone to complications.</p>
 <p align="justify">I am aware that this method requires more resources due to large TransitLines especially in Berlin, however I believe that iterating over each TransitRoute and Departure is justified.</p>
@@ -82,7 +82,7 @@ output: markdown
 <br>
 
 ---
-<details open>
+<details>
 <summary><strong>getEndStationFromRoute()</strong></summary>
 <br>
 <i> transitRoute </i> A MATSim TransitRoute <br>
@@ -92,7 +92,7 @@ output: markdown
 <br>
 
 ---
-<details open>
+<details>
 <summary><strong>getNextDepartureFromEndstation()</strong></summary>
 <br>
 <i>mapOfAllDeparturesOnLine</i> A Map which holds all Departures from a TransitLine<br>
@@ -111,7 +111,7 @@ output: markdown
 <br>
 
 ---
-<details open>
+<details>
 <summary><strong>meetsRequirements()</strong></summary>
 <br>
 <i> departureTimeAtNewLocatiom </i> Departure time at the new stop <br>
@@ -125,14 +125,14 @@ output: markdown
     <li>The stop names are equal or if one is contained in the other</li>
 </ol>
 <br>
-<details open>
+<details>
 <summary>Design Choices</summary>
 <p align="justify"> This adjustment was made after running into issues with the Berlin bus line M44. It ends in a stop name called "Alt-Buckow" and the next first stop would be called "Alt-Buckow [Dorfteich]". If this method proves faulty it will be changed back to the 2nd element being "stop names have to be equal".</p>
 </details>
 <br>
 
 ---
-<details open>
+<details>
 <summary><strong>addTransitVehicles()</strong></summary>
 <br>
 <i> transitVehicles </i> A MATSim TransitVehicles dataset <br>
@@ -143,7 +143,7 @@ output: markdown
 <br>
 
 ---
-<details open>
+<details>
 <summary><strong>addLinkBetweenEndAndStart()</strong></summary>
 <br>
 <i>network</i> A MATSim network dataset <br>
@@ -155,7 +155,7 @@ output: markdown
 <p align="justify">Reads the Nodes from both stops and afterwards creates a link to connect both. The end of a link is the startStop-Node, the beginning is the endStop-Node. The link is also added to the network.</p>
 <p align="justify">The iterator is used to create unique names for the links. The prefix 'umlauf' is used to determine the links created after a simulation has run. The iterator is also increased by one before it is returned.</p>
 
-<details open>
+<details>
 <summary>Design Choices</summary>
 <p align="justify"> Important aspects of link creation are as follows: <br>
 <ul>
@@ -169,7 +169,7 @@ output: markdown
 <br>
 
 ---
-<details open>
+<details>
 <summary><strong>writeFiles()</strong></summary>
 <br>
 
