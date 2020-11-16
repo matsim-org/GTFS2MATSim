@@ -61,6 +61,7 @@ output: markdown
 <br>
 <p align="justify"> This method creates a new TransitVehicleID containing information about the TransitLine. </p>
 </details>
+</details>
 <br>
 
 ---
@@ -128,6 +129,7 @@ output: markdown
 <details>
 <summary>Design Choices</summary>
 <p align="justify"> This adjustment was made after running into issues with the Berlin bus line M44. It ends in a stop name called "Alt-Buckow" and the next first stop would be called "Alt-Buckow [Dorfteich]". If this method proves faulty it will be changed back to the 2nd element being "stop names have to be equal".</p>
+</details>
 </details>
 <br>
 
