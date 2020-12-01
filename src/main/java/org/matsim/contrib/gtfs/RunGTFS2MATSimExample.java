@@ -66,10 +66,6 @@ public final class RunGTFS2MATSimExample {
 		//Convert GTFS
 		RunGTFS2MATSim.convertGTFSandAddToScenario(scenario,gtfsZipFile,date,ct,true);
 
-		// copy late/early departures to have at complete schedule from ca. 0:00 to ca. 30:00 
-		TransitSchedulePostProcessTools.copyLateDeparturesToStartOfDay(scenario.getTransitSchedule(), 24 * 3600, "copied", false);
-		TransitSchedulePostProcessTools.copyEarlyDeparturesToFollowingNight(scenario.getTransitSchedule(), 6 * 3600, "copied");
-
 		//Write out network, vehicles and schedule
 		new NetworkWriter(scenario.getNetwork()).write(networkFile);
 		new TransitScheduleWriter(scenario.getTransitSchedule()).writeFile(scheduleFile);
