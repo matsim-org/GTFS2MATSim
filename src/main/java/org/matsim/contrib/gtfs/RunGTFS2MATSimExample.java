@@ -49,17 +49,14 @@ public final class RunGTFS2MATSimExample {
 
 	public static void main(String[] args) {
 	
-		// this was tested for the latest VBB GTFS, available at 
+		//this was tested for the latest VBB GTFS, available at 
 		// http://www.vbb.de/de/article/fahrplan/webservices/datensaetze/1186967.html
 		
 		//input data
-		String gtfsZipFile = "testing/gtfs_Berlin.zip";
+		String gtfsZipFile = "";
 		CoordinateTransformation ct = TransformationFactory.getCoordinateTransformation(TransformationFactory.WGS84, "EPSG:25833");
-		LocalDate date = LocalDate.parse("2020-11-02");
-		Boolean runVehicleCirculation = true;
-		Boolean overrideMinDelay = false;
-		int minTurnOverTime = 10;
-		
+		LocalDate date = LocalDate.parse("2020-06-25");
+
 		//output files 
 		String scheduleFile = "transitSchedule.xml.gz";
 		String networkFile = "network.xml.gz";
@@ -68,9 +65,6 @@ public final class RunGTFS2MATSimExample {
 
 		//Convert GTFS
 		RunGTFS2MATSim.convertGTFSandAddToScenario(scenario,gtfsZipFile,date,ct,true);
-
-		TransitSchedulePostProcessTools.copyLateDeparturesToStartOfDay(scenario.getTransitSchedule(), 24 * 3600, "copied", false);
-		TransitSchedulePostProcessTools.copyEarlyDeparturesToFollowingNight(scenario.getTransitSchedule(), 6 * 3600, "copied");
 
 		//Write out network, vehicles and schedule
 		new NetworkWriter(scenario.getNetwork()).write(networkFile);
