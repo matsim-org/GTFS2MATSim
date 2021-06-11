@@ -65,8 +65,7 @@ public class RunGTFS2MATSim {
 			System.out.println("Feed start date: " + feedInfo.feed_start_date);
 			System.out.println("Feed end date: " + feedInfo.feed_end_date);
 		});
-		GtfsConverter converter = new GtfsConverter(feed, scenario, coordinateTransformation, false);
-		converter.setDate(date);
+		GtfsConverter converter = GtfsConverter.newBuilder().setFeed(feed).setScenario(scenario).setTransform(coordinateTransformation).setUseExtendedRouteTypes(false).setDate(date).build();
 		converter.convert();
 		TransitSchedulePostProcessTools.copyLateDeparturesToStartOfDay(scenario.getTransitSchedule(), 86400.0, "copied", false);
 		TransitSchedulePostProcessTools.copyEarlyDeparturesToFollowingNight(scenario.getTransitSchedule(), 21600.0, "copied");

@@ -59,8 +59,8 @@ public class GtfsConverter {
     }
 
     private GtfsConverter(GTFSFeed feed, CoordinateTransformation transform, Scenario scenario, LocalDate date, boolean useExtendedRouteTypes,
-                          Predicate<Trip> includeTrips, Predicate<Stop> includeStops, Predicate<String> includeAgency, Predicate<Integer> includeRouteType,
-                          boolean mergeStops) {
+            Predicate<Trip> includeTrips, Predicate<Stop> includeStops, Predicate<String> includeAgency, Predicate<Integer> includeRouteType,
+            boolean mergeStops, LocalDate startDate, LocalDate endDate) {
         this.feed = Objects.requireNonNull(feed, "Gtfs feed is required, use .setFeed(...)");
         this.transform = Objects.requireNonNull(transform, "Coordinate transformation is required, use .setTransform(...)");
         this.ts = Objects.requireNonNull(scenario, "Scenario is required, use .setScenario(...)").getTransitSchedule();
@@ -333,6 +333,8 @@ public class GtfsConverter {
         private Predicate<Stop> includeStop = (t) -> true;
         private Predicate<String> includeAgency = (t) -> true;
         private Predicate<Integer> includeRouteType = (t) -> true;
+        private LocalDate startDate;
+        private LocalDate endDate;
 
         private Builder() {
         }
@@ -342,7 +344,7 @@ public class GtfsConverter {
          */
         public GtfsConverter build() {
             return new GtfsConverter(feed, transform, scenario, date, useExtendedRouteTypes,
-                    includeTrip, includeStop, includeAgency, includeRouteType, mergeStops);
+                    includeTrip, includeStop, includeAgency, includeRouteType, mergeStops, startDate, endDate);
         }
 
         /**
@@ -376,6 +378,24 @@ public class GtfsConverter {
             this.date = date;
             return this;
         }
+
+        /**
+         * Start date from which the schedules will be extracted.
+         */
+        public Builder setStartDate(LocalDate startDate) {
+            this.startDate = startDate;
+            return this;
+        }
+
+        /**
+         * End date until which the schedules will be extracted.
+         */
+        public Builder setEndDate(LocalDate endDate) {
+            this.endDate = endDate;
+            return this;
+        }
+
+
 
         /**
          * Conversion result will be inserted into this scenario.
