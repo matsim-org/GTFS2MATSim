@@ -57,7 +57,7 @@ public class RunGTFS2MATSimExampleRunVehicleCirculation {
 		Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
 
 		//Convert GTFS
-		RunGTFS2MATSim.convertGTFSandAddToScenario(scenario,gtfsZipFile,date,ct,true);
+		RunGTFS2MATSim.convertGTFSandAddToScenario(scenario,gtfsZipFile,date,ct,true,false);
 
 		// copy late/early departures to have at complete schedule from ca. 0:00 to ca. 30:00 
 		// Unfortunately I was having issues with this command. It gives me a fatal error.@gmarburger
