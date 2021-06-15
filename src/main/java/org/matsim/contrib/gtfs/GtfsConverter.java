@@ -119,8 +119,6 @@ public class GtfsConverter {
                     .filter(this::filterAgencyAndType)
                     .collect(Collectors.toList());
 
-           // log.info(String.format("Active Trips: %d %s", activeTrips.size(), activeTrips.stream().map(trip -> trip.trip_id).collect(Collectors.toList())));
-
             // Create one TransitLine for each GTFS-Route which has an active trip
             activeTrips.stream().map(trip -> feed.routes.get(trip.route_id)).distinct().forEach(route -> {
                 TransitLine tl = ts.getFactory().createTransitLine(getReadableTransitLineId(route));
