@@ -94,6 +94,7 @@ public class GtfsTest {
                 .stream()
                 .flatMap(transitLine -> transitLine.getRoutes().values().stream())
                 .mapToInt(r->r.getDepartures().values().size()).sum();
+        Assert.assertEquals(144,departuresWeekend);
 
         MutableScenario scenarioWeekdays = (MutableScenario) ScenarioUtils.createScenario(config);
         //Monday
