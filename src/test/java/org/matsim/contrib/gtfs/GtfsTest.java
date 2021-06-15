@@ -102,7 +102,32 @@ public class GtfsTest {
 
         gtfsWeekdays.convert();
         checkSchedule(scenarioWeekdays, false);
+        int departures = scenarioWeekdays.getTransitSchedule().getTransitLines().values()
+                .stream()
+                .flatMap(transitLine -> transitLine.getRoutes().values().stream())
+                .mapToInt(r->r.getDepartures().values().size()).sum();
+        Assert.assertEquals(140,departures);
+
+        MutableScenario scenarioThreeWeekdays = (MutableScenario) ScenarioUtils.createScenario(config);
+        //Monday
+        GtfsConverter gtfsThreeWeekdays = GtfsConverter.newBuilder()
+                .setScenario(scenarioThreeWeekdays)
+                .setTransform(new IdentityTransformation())
+                .setFeed(GTFSFeed.fromFile("test/input/sample-feed.zip"))
+                .setStartDate(LocalDate.of(2007, 1, 1))
+                .setEndDate(LocalDate.of(2007,1,3))
+                .build();
+
+        gtfsThreeWeekdays.convert();
+        checkSchedule(scenarioThreeWeekdays, false);
+        int departuresThree = scenarioThreeWeekdays.getTransitSchedule().getTransitLines().values()
+                .stream()
+                .flatMap(transitLine -> transitLine.getRoutes().values().stream())
+                .mapToInt(r->r.getDepartures().values().size()).sum();
+        Assert.assertEquals(3*departures,departuresThree);
+
     }
+
 
     @Test
     public void testFilterRouteType() {
