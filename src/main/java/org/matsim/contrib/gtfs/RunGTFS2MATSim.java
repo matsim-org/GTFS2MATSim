@@ -23,11 +23,12 @@ public class RunGTFS2MATSim {
      * 
      * @param fromFile path of input file
      * @param toFile path to write to
-     * @param date date to check for transit data
+     * @param startDate start date (inclusive) to check for transit data
+     * @param endDate end date (inclusive) to check for transit data
      * @param transformation coordination transformation for stops
 	 * @param useExtendedRouteTypes transfer extended route types to MATSim schedule
      */
-    public static void convertGtfs(String fromFile, String toFile, LocalDate date, CoordinateTransformation transformation, boolean useExtendedRouteTypes) {
+    public static void convertGtfs(String fromFile, String toFile, LocalDate startDate, LocalDate endDate, CoordinateTransformation transformation, boolean useExtendedRouteTypes) {
 		GTFSFeed feed = GTFSFeed.fromFile(fromFile);
 
 		feed.feedInfo.values().stream().findFirst().ifPresent(feedInfo -> {
@@ -45,7 +46,8 @@ public class RunGTFS2MATSim {
 				.setScenario(scenario)
 				.setTransform(transformation)
 				.setFeed(feed)
-				.setDate(date)
+				.setStartDate(startDate)
+				.setEndDate(endDate)
 				.setUseExtendedRouteTypes(useExtendedRouteTypes)
 				.build();
 
@@ -58,23 +60,65 @@ public class RunGTFS2MATSim {
 
 		System.out.println("Done.");
     }
+	/**
+	 * Starts the conversion.
+	 *
+	 * @param fromFile path of input file
+	 * @param toFile path to write to
+	 * @param date date to check for transit data
+	 * @param transformation coordination transformation for stops
+	 * @param useExtendedRouteTypes transfer extended route types to MATSim schedule
+	 */
+	public static void convertGtfs(String fromFile, String toFile, LocalDate date, CoordinateTransformation transformation, boolean useExtendedRouteTypes) {
+		convertGtfs(fromFile,toFile,date,date,transformation,useExtendedRouteTypes);
+    }
 
-	public static void convertGTFSandAddToScenario(Scenario scenario, String gtfsZip, LocalDate date, CoordinateTransformation coordinateTransformation, boolean createNetworkAndVehicles) {
-		GTFSFeed feed = GTFSFeed.fromFile(gtfsZip);
-		feed.feedInfo.values().stream().findFirst().ifPresent((feedInfo) -> {
-			System.out.println("Feed start date: " + feedInfo.feed_start_date);
-			System.out.println("Feed end date: " + feedInfo.feed_end_date);
-		});
-		GtfsConverter converter = new GtfsConverter(feed, scenario, coordinateTransformation, false);
-		converter.setDate(date);
-		converter.convert();
-		TransitSchedulePostProcessTools.copyLateDeparturesToStartOfDay(scenario.getTransitSchedule(), 86400.0, "copied", false);
-		TransitSchedulePostProcessTools.copyEarlyDeparturesToFollowingNight(scenario.getTransitSchedule(), 21600.0, "copied");
-		if (createNetworkAndVehicles) {
-			(new CreatePseudoNetwork(scenario.getTransitSchedule(), scenario.getNetwork(), "pt_")).createNetwork();
-			(new CreateVehiclesForSchedule(scenario.getTransitSchedule(), scenario.getTransitVehicles())).run();
+	/**
+	 * Starts the conversion.
+	 *
+	 * @param gtfsZip path of input file
+	 * @param scenario scenario
+	 * @param date to check for transit data
+	 * @param coordinateTransformation coordination transformation for stops
+	 * @param createNetworkAndVehicles determine whether a transit network and vehicles should also be created
+	 * @param copyEarlyAndLateDepartures determine whether schedule
+	 *
+	 */
+	public static void convertGTFSandAddToScenario(Scenario scenario, String gtfsZip, LocalDate date, CoordinateTransformation coordinateTransformation, boolean createNetworkAndVehicles, boolean copyEarlyAndLateDepartures) {
+
+		convertGTFSandAddToScenario(scenario,gtfsZip,date,date,coordinateTransformation,createNetworkAndVehicles);
+		if (copyEarlyAndLateDepartures) {
+			TransitSchedulePostProcessTools.copyLateDeparturesToStartOfDay(scenario.getTransitSchedule(), 86400.0, "copied", false);
+			TransitSchedulePostProcessTools.copyEarlyDeparturesToFollowingNight(scenario.getTransitSchedule(), 21600.0, "copied");
 		}
+
 	}
+
+	/**
+	 * Starts the conversion.
+	 *
+	 * @param gtfsZip path of input file
+	 * @param scenario scenario
+	 * @param startDate start date (inclusive) to check for transit data
+	 * @param endDate end date (inclusive) to check for transit data
+	 * @param coordinateTransformation coordination transformation for stops
+	 * @param createNetworkAndVehicles determine whether a transit network and vehicles should also be created
+	 */
+	public static void convertGTFSandAddToScenario(Scenario scenario, String gtfsZip, LocalDate startDate, LocalDate endDate, CoordinateTransformation coordinateTransformation, boolean createNetworkAndVehicles)
+		{
+			GTFSFeed feed = GTFSFeed.fromFile(gtfsZip);
+			feed.feedInfo.values().stream().findFirst().ifPresent((feedInfo) -> {
+				System.out.println("Feed start date: " + feedInfo.feed_start_date);
+				System.out.println("Feed end date: " + feedInfo.feed_end_date);
+			});
+			GtfsConverter converter = GtfsConverter.newBuilder().setFeed(feed).setScenario(scenario).setTransform(coordinateTransformation).setUseExtendedRouteTypes(false).setStartDate(startDate).setEndDate(endDate).build();
+			converter.convert();
+			if (createNetworkAndVehicles) {
+				(new CreatePseudoNetwork(scenario.getTransitSchedule(), scenario.getNetwork(), "pt_")).createNetwork();
+				(new CreateVehiclesForSchedule(scenario.getTransitSchedule(), scenario.getTransitVehicles())).run();
+			}
+
+		}
 
 	public static void main(String[] args) {
 		String inputZipFile = args[0];

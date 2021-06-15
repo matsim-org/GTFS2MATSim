@@ -90,6 +90,11 @@ public class GtfsTest {
 
         gtfsWeekend.convert();
         checkSchedule(scenarioWeekend, true);
+        int departuresWeekend = scenarioWeekend.getTransitSchedule().getTransitLines().values()
+                .stream()
+                .flatMap(transitLine -> transitLine.getRoutes().values().stream())
+                .mapToInt(r->r.getDepartures().values().size()).sum();
+        Assert.assertEquals(144,departuresWeekend);
 
         MutableScenario scenarioWeekdays = (MutableScenario) ScenarioUtils.createScenario(config);
         //Monday
@@ -102,7 +107,31 @@ public class GtfsTest {
 
         gtfsWeekdays.convert();
         checkSchedule(scenarioWeekdays, false);
+        int departures = scenarioWeekdays.getTransitSchedule().getTransitLines().values()
+                .stream()
+                .flatMap(transitLine -> transitLine.getRoutes().values().stream())
+                .mapToInt(r->r.getDepartures().values().size()).sum();
+        Assert.assertEquals(140,departures);
+
+        MutableScenario scenarioThreeWeekdaysAndTwoWeekendDays = (MutableScenario) ScenarioUtils.createScenario(config);
+        //Monday
+        GtfsConverter gtfsThreeWeekdaysAndTwoWeekendDays = GtfsConverter.newBuilder()
+                .setScenario(scenarioThreeWeekdaysAndTwoWeekendDays)
+                .setTransform(new IdentityTransformation())
+                .setFeed(GTFSFeed.fromFile("test/input/sample-feed.zip"))
+                .setStartDate(LocalDate.of(2007, 1, 3))
+                .setEndDate(LocalDate.of(2007,1,7))
+                .build();
+
+        gtfsThreeWeekdaysAndTwoWeekendDays.convert();
+        int departuresThree = scenarioThreeWeekdaysAndTwoWeekendDays.getTransitSchedule().getTransitLines().values()
+                .stream()
+                .flatMap(transitLine -> transitLine.getRoutes().values().stream())
+                .mapToInt(r->r.getDepartures().values().size()).sum();
+        Assert.assertEquals(3*departures+2*departuresWeekend,departuresThree);
+
     }
+
 
     @Test
     public void testFilterRouteType() {

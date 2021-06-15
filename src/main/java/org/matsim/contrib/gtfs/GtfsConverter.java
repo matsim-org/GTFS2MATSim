@@ -31,128 +31,124 @@ public class GtfsConverter {
     private final Predicate<Integer> includeRouteType;
     private final boolean useExtendedRouteTypes;
     private final boolean mergeStops;
+    private LocalDate endDate;
+    private LocalDate startDate;
 
-
-    private LocalDate date = LocalDate.now();
 
     /**
      * Stop that that have been mapped to the same facility.
      */
     private final Map<String, Id<TransitStopFacility>> mappedStops = new HashMap<>();
 
-    /**
-     * Constructor.
-     *
-     * @deprecated Use {@link #newBuilder()} instead
-     */
-    @Deprecated
-    public GtfsConverter(GTFSFeed feed, Scenario scenario, CoordinateTransformation transform, boolean useExtendedRouteTypes) {
-        this.feed = Objects.requireNonNull(feed, "Gtfs feed is required");
-        this.transform = Objects.requireNonNull(transform, "Coordinate transformation is required");
-        this.ts = scenario.getTransitSchedule();
-        this.useExtendedRouteTypes = useExtendedRouteTypes;
-        this.includeTrip = (t) -> true;
-        this.includeStop = (t) -> true;
-        this.includeAgency = (t) -> true;
-        this.includeRouteType = (t) -> true;
-        this.mergeStops = false;
-    }
+
 
     private GtfsConverter(GTFSFeed feed, CoordinateTransformation transform, Scenario scenario, LocalDate date, boolean useExtendedRouteTypes,
-                          Predicate<Trip> includeTrips, Predicate<Stop> includeStops, Predicate<String> includeAgency, Predicate<Integer> includeRouteType,
-                          boolean mergeStops) {
+            Predicate<Trip> includeTrips, Predicate<Stop> includeStops, Predicate<String> includeAgency, Predicate<Integer> includeRouteType,
+            boolean mergeStops, LocalDate startDate, LocalDate endDate) {
         this.feed = Objects.requireNonNull(feed, "Gtfs feed is required, use .setFeed(...)");
         this.transform = Objects.requireNonNull(transform, "Coordinate transformation is required, use .setTransform(...)");
         this.ts = Objects.requireNonNull(scenario, "Scenario is required, use .setScenario(...)").getTransitSchedule();
-        this.date = date;
+        this.startDate = startDate;
         this.useExtendedRouteTypes = useExtendedRouteTypes;
         this.includeTrip = includeTrips;
         this.includeStop = includeStops;
         this.includeAgency = includeAgency;
         this.includeRouteType = includeRouteType;
         this.mergeStops = mergeStops;
+        this.endDate = endDate;
+        if (endDate==null && startDate == null & date!=null){
+            this.startDate = date;
+            this.endDate = date;
+        }
+        if (this.endDate.compareTo(this.startDate) < 0){
+            throw new RuntimeException("Start Date "+startDate.toString()+" larger than End date "+endDate.toString());
+        }
     }
 
-    /**
-     * @see #newBuilder() to set the date.
-     */
-    @Deprecated
-    public void setDate(LocalDate date) {
-        this.date = date;
-    }
 
     public void convert() {
 
         // Put all stops in the Schedule
         this.convertStops();
 
-        LocalDate startDate = LocalDate.MAX;
+        LocalDate feedStartDate = LocalDate.MAX;
         for (Service service : this.feed.services.values()) {
-            if (service.calendar != null && service.calendar.start_date.isBefore(startDate)) {
-                startDate = service.calendar.start_date;
+            if (service.calendar != null && service.calendar.start_date.isBefore(feedStartDate)) {
+                feedStartDate = service.calendar.start_date;
             }
             if (service.calendar_dates != null) {
                 for (LocalDate exceptionDate : service.calendar_dates.keySet()) {
-                    if (exceptionDate.isBefore(startDate)) {
-                        startDate = exceptionDate;
+                    if (exceptionDate.isBefore(feedStartDate)) {
+                        feedStartDate = exceptionDate;
                     }
                 }
             }
         }
 
-        log.info("Earliest date mentioned in feed: " + startDate);
+        log.info("Earliest date mentioned in feed: " + feedStartDate);
 
-        LocalDate endDate = LocalDate.MIN;
+        LocalDate feedEndDate = LocalDate.MIN;
         for (Service service : this.feed.services.values()) {
-            if (service.calendar != null && service.calendar.end_date.isAfter(endDate)) {
-                endDate = service.calendar.end_date;
+            if (service.calendar != null && service.calendar.end_date.isAfter(feedEndDate)) {
+                feedEndDate = service.calendar.end_date;
             }
             if (service.calendar_dates != null) {
                 for (LocalDate exceptionDate : service.calendar_dates.keySet()) {
-                    if (exceptionDate.isAfter(endDate)) {
-                        endDate = exceptionDate;
+                    if (exceptionDate.isAfter(feedEndDate)) {
+                        feedEndDate = exceptionDate;
                     }
                 }
             }
 
         }
-        log.info("Latest date mentioned in feed: " + endDate);
+        log.info("Latest date mentioned in feed: " + feedEndDate);
+        ts.getAttributes().putAttribute("startDate",startDate.toString());
+        ts.getAttributes().putAttribute("endDate",endDate.toString());
+        LocalDate date = startDate;
+        int offsetDays = 0;
+        do {
+            // Get the used service Id for the chosen weekday and date
+            List<String> activeServiceIds = this.getActiveServiceIds(this.feed.services, date);
+            log.info("Active Services: "+ activeServiceIds.size());
 
-        // Get the used service Id for the chosen weekday and date
-        List<String> activeServiceIds = this.getActiveServiceIds(this.feed.services);
-        log.info(String.format("Active Services: %d %s", activeServiceIds.size(), activeServiceIds));
+            // Get the Trips which are active today
+            final LocalDate finalDate = date;
+            List<Trip> activeTrips = feed.trips.values().stream()
+                    .filter(trip -> feed.services.get(trip.service_id).activeOn(finalDate))
+                    .filter(this.includeTrip)
+                    .filter(this::filterAgencyAndType)
+                    .collect(Collectors.toList());
 
-        // Get the Trips which are active today
-        List<Trip> activeTrips = feed.trips.values().stream()
-                .filter(trip -> feed.services.get(trip.service_id).activeOn(this.date))
-                .filter(this.includeTrip)
-                .filter(this::filterAgencyAndType)
-                .collect(Collectors.toList());
+           // log.info(String.format("Active Trips: %d %s", activeTrips.size(), activeTrips.stream().map(trip -> trip.trip_id).collect(Collectors.toList())));
 
-        log.info(String.format("Active Trips: %d %s", activeTrips.size(), activeTrips.stream().map(trip -> trip.trip_id).collect(Collectors.toList())));
+            // Create one TransitLine for each GTFS-Route which has an active trip
+            activeTrips.stream().map(trip -> feed.routes.get(trip.route_id)).distinct().forEach(route -> {
+                TransitLine tl = ts.getFactory().createTransitLine(getReadableTransitLineId(route));
+                if (!ts.getTransitLines().containsKey(tl.getId())) {
+                    ts.addTransitLine(tl);
+                    if (route.agency_id != null)
+                        tl.getAttributes().putAttribute("gtfs_agency_id", String.valueOf(route.agency_id));
+                    tl.getAttributes().putAttribute("gtfs_route_type", String.valueOf(route.route_type)); // route type is a required field according to GTFS specification
+                    String routeShortName = null;
+                    if (route.route_short_name != null) {
+                        routeShortName = route.route_short_name;
+                    } else {
+                        // use id in case there is no route short name
+                        routeShortName = String.valueOf(route.route_id);
+                    }
+                    tl.getAttributes().putAttribute("gtfs_route_short_name",
+                            Normalizer.normalize(routeShortName, Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "")); // replaces non ascii symbols
+                }
+            });
 
-        // Create one TransitLine for each GTFS-Route which has an active trip
-        activeTrips.stream().map(trip -> feed.routes.get(trip.route_id)).distinct().forEach(route -> {
-            TransitLine tl = ts.getFactory().createTransitLine(getReadableTransitLineId(route));
-            ts.addTransitLine(tl);
-            if (route.agency_id != null) tl.getAttributes().putAttribute("gtfs_agency_id", String.valueOf(route.agency_id));
-            tl.getAttributes().putAttribute("gtfs_route_type", String.valueOf(route.route_type)); // route type is a required field according to GTFS specification
-            String routeShortName = null;
-            if (route.route_short_name != null) {
-                routeShortName = route.route_short_name;
-            } else {
-                // use id in case there is no route short name
-                routeShortName = String.valueOf(route.route_id);
-            }
-            tl.getAttributes().putAttribute("gtfs_route_short_name",
-                    Normalizer.normalize(routeShortName, Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "")); // replaces non ascii symbols
-        });
-
-        this.convertTrips(activeTrips);
-
+            this.convertTrips(activeTrips,offsetDays);
+            date= date.plusDays(1);
+            offsetDays++;
         if (activeTrips.isEmpty()) {
             log.warn("There are no converted trips. You might need to change the date for better results.");
         }
+        } while (!date.isEqual(this.endDate.plusDays(1)));
+
         log.info("Conversion successful");
     }
 
@@ -189,9 +185,9 @@ public class GtfsConverter {
     }
 
 
-    private List<String> getActiveServiceIds(Map<String, Service> services) {
+    private List<String> getActiveServiceIds(Map<String, Service> services, LocalDate date) {
         List<String> serviceIds = new ArrayList<>();
-        log.info("Used Date for active schedules: " + this.date.toString() + " (weekday: " + date.getDayOfWeek().toString() + "). If you want to choose another date, please specify it, before running the converter");
+        log.info("Used Date for active schedules: " + date.toString() + " (weekday: " + date.getDayOfWeek().toString() + "). If you want to choose another date, please specify it, before running the converter");
         for (Service service : services.values()) {
             if (service.activeOn(date)) {
                 serviceIds.add(service.service_id);
@@ -201,15 +197,16 @@ public class GtfsConverter {
     }
 
 
-    private void convertTrips(List<Trip> trips) {
+    private void convertTrips(List<Trip> trips, int offsetDays) {
         int scheduleDepartures = 0;
         int frequencyDepartures = 0;
+        int offset = offsetDays * 24 * 3600;
         for (Trip trip : trips) {
             if (feed.getFrequencies(trip.trip_id).isEmpty()) {
                 if (feed.getOrderedStopTimesForTrip(trip.trip_id) == null || !feed.getOrderedStopTimesForTrip(trip.trip_id).iterator().hasNext()) {
                     log.error("Found a trip with neither frequency nor ordered stop times. Will not add any Matsim TransitRoute/Departure for that trip. GTFS trip_id=" + trip.trip_id);
                     continue;
-                }
+                    }
                 StopTime firstStopTime = feed.getOrderedStopTimesForTrip(trip.trip_id).iterator().next();
                 Double departureTime = Time.parseTime(String.valueOf(firstStopTime.departure_time));
                 List<TransitRouteStop> stops = new ArrayList<>();
@@ -240,7 +237,7 @@ public class GtfsConverter {
                 }
                 TransitLine tl = ts.getTransitLines().get(getReadableTransitLineId(trip));
                 TransitRoute tr = findOrAddTransitRoute(tl, feed.routes.get(trip.route_id), stops);
-                Departure departure = ts.getFactory().createDeparture(Id.create(trip.trip_id, Departure.class), departureTime);
+                Departure departure = ts.getFactory().createDeparture(Id.create(trip.trip_id+"_"+offset, Departure.class), departureTime+offset);
                 tr.addDeparture(departure);
                 scheduleDepartures++;
             } else {
@@ -261,7 +258,7 @@ public class GtfsConverter {
                     for (int time = frequency.start_time; time < frequency.end_time; time += frequency.headway_secs) {
                         TransitLine tl = ts.getTransitLines().get(getReadableTransitLineId(trip));
                         TransitRoute tr = findOrAddTransitRoute(tl, feed.routes.get(trip.route_id), stops);
-                        Departure d = ts.getFactory().createDeparture(Id.create(trip.trip_id + "." + time, Departure.class), time);
+                        Departure d = ts.getFactory().createDeparture(Id.create(trip.trip_id + "." + time+offset, Departure.class), time+offset);
                         tr.addDeparture(d);
                         frequencyDepartures++;
                     }
@@ -333,6 +330,8 @@ public class GtfsConverter {
         private Predicate<Stop> includeStop = (t) -> true;
         private Predicate<String> includeAgency = (t) -> true;
         private Predicate<Integer> includeRouteType = (t) -> true;
+        private LocalDate startDate;
+        private LocalDate endDate;
 
         private Builder() {
         }
@@ -342,7 +341,7 @@ public class GtfsConverter {
          */
         public GtfsConverter build() {
             return new GtfsConverter(feed, transform, scenario, date, useExtendedRouteTypes,
-                    includeTrip, includeStop, includeAgency, includeRouteType, mergeStops);
+                    includeTrip, includeStop, includeAgency, includeRouteType, mergeStops, startDate, endDate);
         }
 
         /**
@@ -376,6 +375,24 @@ public class GtfsConverter {
             this.date = date;
             return this;
         }
+
+        /**
+         * Start date from which the schedules will be extracted.
+         */
+        public Builder setStartDate(LocalDate startDate) {
+            this.startDate = startDate;
+            return this;
+        }
+
+        /**
+         * End date until which the schedules will be extracted.
+         */
+        public Builder setEndDate(LocalDate endDate) {
+            this.endDate = endDate;
+            return this;
+        }
+
+
 
         /**
          * Conversion result will be inserted into this scenario.

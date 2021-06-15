@@ -64,7 +64,7 @@ public final class RunGTFS2MATSimExample {
 		Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
 
 		//Convert GTFS
-		RunGTFS2MATSim.convertGTFSandAddToScenario(scenario,gtfsZipFile,date,ct,true);
+		RunGTFS2MATSim.convertGTFSandAddToScenario(scenario,gtfsZipFile,date,ct,true,true);
 
 		//Write out network, vehicles and schedule
 		new NetworkWriter(scenario.getNetwork()).write(networkFile);
