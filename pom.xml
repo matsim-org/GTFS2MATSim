@@ -6,7 +6,7 @@
 	<version>14.0-PR1795</version>
 
 	<properties>
-		<matsim.version>14.0-PR1795</matsim.version>
+		<matsim.version>14.0-PR1802</matsim.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<maven.compiler.source>11</maven.compiler.source>
