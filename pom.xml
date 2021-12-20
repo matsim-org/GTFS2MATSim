@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.matsim.contrib</groupId>
 	<artifactId>matsim-gtfs</artifactId>
-	<version>14.0-PR1802</version>
+	<version>14.0-PR1807</version>
 
 	<properties>
 		<matsim.version>14.0-PR1807</matsim.version>
