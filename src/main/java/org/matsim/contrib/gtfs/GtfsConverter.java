@@ -31,6 +31,7 @@ public class GtfsConverter {
     private final Predicate<Integer> includeRouteType;
     private final boolean useExtendedRouteTypes;
     private final boolean mergeStops;
+    private final String prefix;
     private LocalDate endDate;
     private LocalDate startDate;
 
@@ -40,28 +41,25 @@ public class GtfsConverter {
      */
     private final Map<String, Id<TransitStopFacility>> mappedStops = new HashMap<>();
 
-
-
-    private GtfsConverter(GTFSFeed feed, CoordinateTransformation transform, Scenario scenario, LocalDate date, boolean useExtendedRouteTypes,
-            Predicate<Trip> includeTrips, Predicate<Stop> includeStops, Predicate<String> includeAgency, Predicate<Integer> includeRouteType,
-            boolean mergeStops, LocalDate startDate, LocalDate endDate) {
-        this.feed = Objects.requireNonNull(feed, "Gtfs feed is required, use .setFeed(...)");
-        this.transform = Objects.requireNonNull(transform, "Coordinate transformation is required, use .setTransform(...)");
-        this.ts = Objects.requireNonNull(scenario, "Scenario is required, use .setScenario(...)").getTransitSchedule();
-        this.startDate = startDate;
-        this.useExtendedRouteTypes = useExtendedRouteTypes;
-        this.includeTrip = includeTrips;
-        this.includeStop = includeStops;
-        this.includeAgency = includeAgency;
-        this.includeRouteType = includeRouteType;
-        this.mergeStops = mergeStops;
-        this.endDate = endDate;
-        if (endDate==null && startDate == null & date!=null){
-            this.startDate = date;
-            this.endDate = date;
+    private GtfsConverter(Builder builder) {
+        this.feed = Objects.requireNonNull(builder.feed, "Gtfs feed is required, use .setFeed(...)");
+        this.transform = Objects.requireNonNull(builder.transform, "Coordinate transformation is required, use .setTransform(...)");
+        this.ts = Objects.requireNonNull(builder.scenario, "Scenario is required, use .setScenario(...)").getTransitSchedule();
+        this.startDate = builder.startDate;
+        this.useExtendedRouteTypes = builder.useExtendedRouteTypes;
+        this.includeTrip = builder.includeTrip;
+        this.includeStop = builder.includeStop;
+        this.includeAgency = builder.includeAgency;
+        this.includeRouteType = builder.includeRouteType;
+        this.mergeStops = builder.mergeStops;
+        this.prefix = builder.prefix;
+        this.endDate = builder.endDate;
+	    if (builder.endDate == null && builder.startDate == null & builder.date != null) {
+            this.startDate = builder.date;
+            this.endDate = builder.date;
         }
-        if (this.endDate.compareTo(this.startDate) < 0){
-            throw new RuntimeException("Start Date "+startDate.toString()+" larger than End date "+endDate.toString());
+	    if (this.endDate != null && this.startDate != null && this.endDate.compareTo(this.startDate) < 0) {
+	        throw new RuntimeException("Start Date " + startDate + " larger than End date " + endDate);
         }
     }
 
@@ -171,7 +169,7 @@ public class GtfsConverter {
                 continue;
             }
 
-            TransitStopFacility t = this.ts.getFactory().createTransitStopFacility(Id.create(stop.stop_id, TransitStopFacility.class), coord, false);
+            TransitStopFacility t = this.ts.getFactory().createTransitStopFacility(Id.create(prefix + stop.stop_id, TransitStopFacility.class), coord, false);
             t.setName(stop.stop_name);
 
             // add only if not yet present
@@ -235,7 +233,7 @@ public class GtfsConverter {
                 }
                 TransitLine tl = ts.getTransitLines().get(getReadableTransitLineId(trip));
                 TransitRoute tr = findOrAddTransitRoute(tl, feed.routes.get(trip.route_id), stops);
-                Departure departure = ts.getFactory().createDeparture(Id.create(trip.trip_id+"_"+offset, Departure.class), departureTime+offset);
+                Departure departure = ts.getFactory().createDeparture(Id.create(prefix + trip.trip_id + "_" + offset, Departure.class), departureTime + offset);
                 tr.addDeparture(departure);
                 scheduleDepartures++;
             } else {
@@ -256,7 +254,7 @@ public class GtfsConverter {
                     for (int time = frequency.start_time; time < frequency.end_time; time += frequency.headway_secs) {
                         TransitLine tl = ts.getTransitLines().get(getReadableTransitLineId(trip));
                         TransitRoute tr = findOrAddTransitRoute(tl, feed.routes.get(trip.route_id), stops);
-                        Departure d = ts.getFactory().createDeparture(Id.create(trip.trip_id + "." + time+offset, Departure.class), time+offset);
+                        Departure d = ts.getFactory().createDeparture(Id.create(prefix + trip.trip_id + "." + time+offset, Departure.class), time+offset);
                         tr.addDeparture(d);
                         frequencyDepartures++;
                     }
@@ -269,7 +267,7 @@ public class GtfsConverter {
 
     private Id<TransitStopFacility> findTransitStop(StopTime stopTime) {
         if (!mergeStops || !mappedStops.containsKey(stopTime.stop_id))
-            return Id.create(stopTime.stop_id, TransitStopFacility.class);
+            return Id.create(prefix + stopTime.stop_id, TransitStopFacility.class);
 
         return mappedStops.get(stopTime.stop_id);
     }
@@ -281,7 +279,7 @@ public class GtfsConverter {
                 return tr;
             }
         }
-        Id<TransitRoute> routeId = Id.create(tl.getId().toString() + "_" + tl.getRoutes().size(), TransitRoute.class);
+        Id<TransitRoute> routeId = Id.create(prefix + tl.getId().toString() + "_" + tl.getRoutes().size(), TransitRoute.class);
 
         RouteType routeType = RouteType.getRouteTypes().get(route.route_type);
         if (routeType == null) {
@@ -306,7 +304,7 @@ public class GtfsConverter {
         if (route.route_short_name != null && route.route_short_name.length() > 0) {
             asciiShortName = Normalizer.normalize(route.route_short_name, Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "");
         }
-        return Id.create(asciiShortName + "---" + route.route_id, TransitLine.class);
+        return Id.create(prefix + asciiShortName + "---" + route.route_id, TransitLine.class);
     }
 
     /**
@@ -330,6 +328,7 @@ public class GtfsConverter {
         private Predicate<Integer> includeRouteType = (t) -> true;
         private LocalDate startDate;
         private LocalDate endDate;
+        private String prefix = "";
 
         private Builder() {
         }
@@ -338,8 +337,7 @@ public class GtfsConverter {
          * Creates the converter instance.
          */
         public GtfsConverter build() {
-            return new GtfsConverter(feed, transform, scenario, date, useExtendedRouteTypes,
-                    includeTrip, includeStop, includeAgency, includeRouteType, mergeStops, startDate, endDate);
+            return new GtfsConverter(this);
         }
 
         /**
@@ -389,8 +387,6 @@ public class GtfsConverter {
             this.endDate = endDate;
             return this;
         }
-
-
 
         /**
          * Conversion result will be inserted into this scenario.
@@ -443,6 +439,13 @@ public class GtfsConverter {
         public Builder setMergeStops(boolean mergeStops) {
             this.mergeStops = mergeStops;
             return this;
+        }
+
+        /**
+         * Id prefix to make prevent collisions
+         */
+        public void setPrefix(String prefix) {
+            this.prefix = prefix;
         }
     }
 
