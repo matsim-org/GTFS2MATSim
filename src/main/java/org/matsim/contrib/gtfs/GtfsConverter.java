@@ -279,7 +279,9 @@ public class GtfsConverter {
                 return tr;
             }
         }
-        Id<TransitRoute> routeId = Id.create(prefix + tl.getId().toString() + "_" + tl.getRoutes().size(), TransitRoute.class);
+
+        // no prefix needed because already included in transit line
+        Id<TransitRoute> routeId = Id.create(tl.getId().toString() + "_" + tl.getRoutes().size(), TransitRoute.class);
 
         RouteType routeType = RouteType.getRouteTypes().get(route.route_type);
         if (routeType == null) {
