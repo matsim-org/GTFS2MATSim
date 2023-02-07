@@ -16,6 +16,7 @@ import java.text.Normalizer;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class GtfsConverter {
@@ -170,7 +171,14 @@ public class GtfsConverter {
             }
 
             TransitStopFacility t = this.ts.getFactory().createTransitStopFacility(Id.create(prefix + stop.stop_id, TransitStopFacility.class), coord, false);
-            t.setName(stop.stop_name);
+
+            Pattern pattern = java.util.regex.Pattern.compile("\\p{C}", Pattern.CASE_INSENSITIVE);
+
+            if(pattern.matcher(stop.stop_name).find()){
+                String cleaned = stop.stop_name.replaceAll("\\p{C}", "");
+                t.setName(cleaned);
+            } else
+                t.setName(stop.stop_name);
 
             // add only if not yet present
             if (!ts.getFacilities().containsKey(t.getId()))
