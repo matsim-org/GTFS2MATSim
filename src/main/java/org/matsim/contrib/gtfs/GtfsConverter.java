@@ -71,6 +71,8 @@ public class GtfsConverter {
         // Put all stops in the Schedule
         this.convertStops();
 
+        this.convertTransferTimes();
+
         LocalDate feedStartDate = LocalDate.MAX;
         for (Service service : this.feed.services.values()) {
             if (service.calendar != null && service.calendar.start_date.isBefore(feedStartDate)) {
@@ -182,6 +184,16 @@ public class GtfsConverter {
         }
     }
 
+    private void convertTransferTimes() {
+        for (Transfer transfer : this.feed.transfers.values()) {
+            Id<TransitStopFacility> fromStop = findTransitStop(transfer.from_stop_id);
+            Id<TransitStopFacility> tostop = findTransitStop(transfer.to_stop_id);
+            if(fromStop != null && tostop != null) {
+                this.ts.getMinimalTransferTimes().set(fromStop, tostop, transfer.min_transfer_time);
+            }
+        }
+    }
+
 
     private List<String> getActiveServiceIds(Map<String, Service> services, LocalDate date) {
         List<String> serviceIds = new ArrayList<>();
@@ -210,7 +222,7 @@ public class GtfsConverter {
                 List<TransitRouteStop> stops = new ArrayList<>();
                 try {
                     for (StopTime stopTime : feed.getInterpolatedStopTimesForTrip(trip.trip_id)) {
-                        Id<TransitStopFacility> stopId = findTransitStop(stopTime);
+                        Id<TransitStopFacility> stopId = findTransitStop(stopTime.stop_id);
                         TransitStopFacility stop = ts.getFacilities().get(stopId);
 
                         // This stop was filtered and will be ignored
@@ -241,7 +253,7 @@ public class GtfsConverter {
             } else {
                 List<TransitRouteStop> stops = new ArrayList<>();
                 for (StopTime stopTime : feed.getOrderedStopTimesForTrip(trip.trip_id)) {
-                    Id<TransitStopFacility> stopId = findTransitStop(stopTime);
+                    Id<TransitStopFacility> stopId = findTransitStop(stopTime.stop_id);
                     TransitStopFacility stop = ts.getFacilities().get(stopId);
 
                     if (stop == null)
@@ -267,11 +279,11 @@ public class GtfsConverter {
         log.info("Created frequency-based departures: " + frequencyDepartures);
     }
 
-    private Id<TransitStopFacility> findTransitStop(StopTime stopTime) {
-        if (!mergeStops || !mappedStops.containsKey(stopTime.stop_id))
-            return Id.create(stopTime.stop_id, TransitStopFacility.class);
+    private Id<TransitStopFacility> findTransitStop(String stopId) {
+        if (!mergeStops || !mappedStops.containsKey(stopId))
+            return Id.create(stopId, TransitStopFacility.class);
 
-        return mappedStops.get(stopTime.stop_id);
+        return mappedStops.get(stopId);
     }
 
 
