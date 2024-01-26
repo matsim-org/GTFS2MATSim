@@ -32,13 +32,14 @@ public class GtfsConverter {
     private final Predicate<Integer> includeRouteType;
     private final boolean useExtendedRouteTypes;
     private final boolean mergeStops;
+    private final boolean includeMinimalTransferTimes;
     private final String prefix;
     private LocalDate endDate;
     private LocalDate startDate;
 
 
     /**
-     * Stop that that have been mapped to the same facility.
+     * Stop that have been mapped to the same facility.
      */
     private final Map<String, Id<TransitStopFacility>> mappedStops = new HashMap<>();
 
@@ -53,6 +54,7 @@ public class GtfsConverter {
         this.includeAgency = builder.includeAgency;
         this.includeRouteType = builder.includeRouteType;
         this.mergeStops = builder.mergeStops;
+        this.includeMinimalTransferTimes = builder.includeMinimalTransferTimes;
         this.prefix = builder.prefix;
         this.endDate = builder.endDate;
 	    if (builder.endDate == null && builder.startDate == null & builder.date != null) {
@@ -70,7 +72,9 @@ public class GtfsConverter {
         // Put all stops in the Schedule
         this.convertStops();
 
-        this.convertTransferTimes();
+        if(this.includeMinimalTransferTimes) {
+            this.convertTransferTimes();
+        }
 
         LocalDate feedStartDate = LocalDate.MAX;
         for (Service service : this.feed.services.values()) {
@@ -343,6 +347,7 @@ public class GtfsConverter {
         private LocalDate date = LocalDate.now();
         private boolean useExtendedRouteTypes = false;
         private boolean mergeStops = false;
+        private boolean includeMinimalTransferTimes = false;
         private Scenario scenario;
         private Predicate<Trip> includeTrip = (t) -> true;
         private Predicate<Stop> includeStop = (t) -> true;
@@ -468,6 +473,14 @@ public class GtfsConverter {
          */
         public void setPrefix(String prefix) {
             this.prefix = prefix;
+        }
+
+        /**
+         * Merge stops on the same coordinate.
+         */
+        public Builder setIncludeMinimalTransferTimes(boolean includeMinimalTransferTimes) {
+            this.includeMinimalTransferTimes = includeMinimalTransferTimes;
+            return this;
         }
     }
 
