@@ -32,13 +32,14 @@ public class GtfsConverter {
     private final Predicate<Integer> includeRouteType;
     private final boolean useExtendedRouteTypes;
     private final boolean mergeStops;
+    private final boolean includeMinimalTransferTimes;
     private final String prefix;
     private LocalDate endDate;
     private LocalDate startDate;
 
 
     /**
-     * Stop that that have been mapped to the same facility.
+     * Stop that have been mapped to the same facility.
      */
     private final Map<String, Id<TransitStopFacility>> mappedStops = new HashMap<>();
 
@@ -53,6 +54,7 @@ public class GtfsConverter {
         this.includeAgency = builder.includeAgency;
         this.includeRouteType = builder.includeRouteType;
         this.mergeStops = builder.mergeStops;
+        this.includeMinimalTransferTimes = builder.includeMinimalTransferTimes;
         this.prefix = builder.prefix;
         this.endDate = builder.endDate;
 	    if (builder.endDate == null && builder.startDate == null & builder.date != null) {
@@ -69,6 +71,10 @@ public class GtfsConverter {
 
         // Put all stops in the Schedule
         this.convertStops();
+
+        if(this.includeMinimalTransferTimes) {
+            this.convertTransferTimes();
+        }
 
         LocalDate feedStartDate = LocalDate.MAX;
         for (Service service : this.feed.services.values()) {
@@ -188,6 +194,16 @@ public class GtfsConverter {
         }
     }
 
+    private void convertTransferTimes() {
+        for (Transfer transfer : this.feed.transfers.values()) {
+            Id<TransitStopFacility> fromStop = findTransitStop(transfer.from_stop_id);
+            Id<TransitStopFacility> tostop = findTransitStop(transfer.to_stop_id);
+            if(fromStop != null && tostop != null) {
+                this.ts.getMinimalTransferTimes().set(fromStop, tostop, transfer.min_transfer_time);
+            }
+        }
+    }
+
 
     private List<String> getActiveServiceIds(Map<String, Service> services, LocalDate date) {
         List<String> serviceIds = new ArrayList<>();
@@ -216,7 +232,7 @@ public class GtfsConverter {
                 List<TransitRouteStop> stops = new ArrayList<>();
                 try {
                     for (StopTime stopTime : feed.getInterpolatedStopTimesForTrip(trip.trip_id)) {
-                        Id<TransitStopFacility> stopId = findTransitStop(stopTime);
+                        Id<TransitStopFacility> stopId = findTransitStop(stopTime.stop_id);
                         TransitStopFacility stop = ts.getFacilities().get(stopId);
 
                         // This stop was filtered and will be ignored
@@ -247,7 +263,7 @@ public class GtfsConverter {
             } else {
                 List<TransitRouteStop> stops = new ArrayList<>();
                 for (StopTime stopTime : feed.getOrderedStopTimesForTrip(trip.trip_id)) {
-                    Id<TransitStopFacility> stopId = findTransitStop(stopTime);
+                    Id<TransitStopFacility> stopId = findTransitStop(stopTime.stop_id);
                     TransitStopFacility stop = ts.getFacilities().get(stopId);
 
                     if (stop == null)
@@ -273,11 +289,11 @@ public class GtfsConverter {
         log.info("Created frequency-based departures: " + frequencyDepartures);
     }
 
-    private Id<TransitStopFacility> findTransitStop(StopTime stopTime) {
-        if (!mergeStops || !mappedStops.containsKey(stopTime.stop_id))
-            return Id.create(prefix + stopTime.stop_id, TransitStopFacility.class);
+    private Id<TransitStopFacility> findTransitStop(String stopId) {
+        if (!mergeStops || !mappedStops.containsKey(stopId))
+            return Id.create(prefix + stopId, TransitStopFacility.class);
 
-        return mappedStops.get(stopTime.stop_id);
+        return mappedStops.get(stopId);
     }
 
 
@@ -331,6 +347,7 @@ public class GtfsConverter {
         private LocalDate date = LocalDate.now();
         private boolean useExtendedRouteTypes = false;
         private boolean mergeStops = false;
+        private boolean includeMinimalTransferTimes = false;
         private Scenario scenario;
         private Predicate<Trip> includeTrip = (t) -> true;
         private Predicate<Stop> includeStop = (t) -> true;
@@ -456,6 +473,14 @@ public class GtfsConverter {
          */
         public void setPrefix(String prefix) {
             this.prefix = prefix;
+        }
+
+        /**
+         * Merge stops on the same coordinate.
+         */
+        public Builder setIncludeMinimalTransferTimes(boolean includeMinimalTransferTimes) {
+            this.includeMinimalTransferTimes = includeMinimalTransferTimes;
+            return this;
         }
     }
 
