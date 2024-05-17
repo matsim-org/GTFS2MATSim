@@ -53,9 +53,9 @@ public final class RunGTFS2MATSimExample {
 		// http://www.vbb.de/de/article/fahrplan/webservices/datensaetze/1186967.html
 		
 		//input data
-		String gtfsZipFile = "";
+		String gtfsZipFile = "../../Downloads/VBB_GTFS_2024-01-29.zip";
 		CoordinateTransformation ct = TransformationFactory.getCoordinateTransformation(TransformationFactory.WGS84, "EPSG:25833");
-		LocalDate date = LocalDate.parse("2020-06-25");
+		LocalDate date = LocalDate.parse("2024-01-30");
 
 		//output files 
 		String scheduleFile = "transitSchedule.xml.gz";

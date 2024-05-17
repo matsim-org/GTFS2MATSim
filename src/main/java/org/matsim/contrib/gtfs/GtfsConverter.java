@@ -347,7 +347,7 @@ public class GtfsConverter {
         private LocalDate date = LocalDate.now();
         private boolean useExtendedRouteTypes = false;
         private boolean mergeStops = false;
-        private boolean includeMinimalTransferTimes = false;
+        private boolean includeMinimalTransferTimes = true;
         private Scenario scenario;
         private Predicate<Trip> includeTrip = (t) -> true;
         private Predicate<Stop> includeStop = (t) -> true;
