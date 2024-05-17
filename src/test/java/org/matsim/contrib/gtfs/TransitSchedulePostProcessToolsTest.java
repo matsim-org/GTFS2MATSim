@@ -23,8 +23,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.network.Link;
@@ -33,7 +33,6 @@ import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.core.population.routes.RouteUtils;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.geometry.CoordUtils;
-import org.matsim.core.utils.misc.Time;
 import org.matsim.pt.transitSchedule.api.Departure;
 import org.matsim.pt.transitSchedule.api.TransitLine;
 import org.matsim.pt.transitSchedule.api.TransitRoute;
@@ -56,15 +55,14 @@ public class TransitSchedulePostProcessToolsTest {
 		Map<Id<Departure>, Departure> departures = 
 				schedule.getTransitLines().get(redLineId).getRoutes().get(redFirstToLastRouteId).getDepartures();
 		
-		Assert.assertEquals("wrong number of departures after copying", 6, departures.keySet().size());
-		Assert.assertTrue("At least one of the old Departures does not exist any longer or has a wrong departure time after copying", 
-				oldDeparturesStillExist(departures));
-		Assert.assertEquals("Departure lateArrivalBeforeMidnight was not copied or has wrong departure time", 
-				23.0*3600 + 45*60 - 24*3600, 
-				departures.get(Id.create("copied-24h_lateArrivalBeforeMidnight", Departure.class)).getDepartureTime(), 0.1);
-		Assert.assertEquals("Departure lateArrivalAfterMidnight was not copied or has wrong departure time", 
-				23.0*3600 + 55*60 - 24*3600, 
-				departures.get(Id.create("copied-24h_lateArrivalAfterMidnight", Departure.class)).getDepartureTime(), 0.1);
+		Assertions.assertEquals(6, departures.keySet().size(), "wrong number of departures after copying");
+		Assertions.assertTrue(oldDeparturesStillExist(departures), "At least one of the old Departures does not exist any longer or has a wrong departure time after copying");
+		Assertions.assertEquals(23.0*3600 + 45*60 - 24*3600,
+				departures.get(Id.create("copied-24h_lateArrivalBeforeMidnight", Departure.class)).getDepartureTime(), 0.1,
+				"Departure lateArrivalBeforeMidnight was not copied or has wrong departure time");
+		Assertions.assertEquals(23.0*3600 + 55*60 - 24*3600,
+				departures.get(Id.create("copied-24h_lateArrivalAfterMidnight", Departure.class)).getDepartureTime(), 0.1,
+				"Departure lateArrivalAfterMidnight was not copied or has wrong departure time");
 		
 		// without exclusion, copyDespiteArrivalBeforeMidnight=false
 		f = new DepartureCopyingFixture();
@@ -72,14 +70,14 @@ public class TransitSchedulePostProcessToolsTest {
 		TransitSchedulePostProcessTools.copyLateDeparturesToStartOfDay(schedule, 23*3600, null, false);
 		departures = schedule.getTransitLines().get(redLineId).getRoutes().get(redFirstToLastRouteId).getDepartures();
 		
-		Assert.assertEquals("wrong number of departures after copying", 5, departures.keySet().size());
-		Assert.assertTrue("At least one of the old Departures does not exist any longer or has a wrong departure time after copying", 
-				oldDeparturesStillExist(departures));
-		Assert.assertFalse("Departure lateArrivalBeforeMidnight was copied although it arrives before midnight", 
-				departures.containsKey(Id.create("copied-24h_lateArrivalBeforeMidnight", Departure.class)));
-		Assert.assertEquals("Departure lateArrivalAfterMidnight was not copied or has wrong departure time", 
-				23.0*3600 + 55*60 - 24*3600, 
-				departures.get(Id.create("copied-24h_lateArrivalAfterMidnight", Departure.class)).getDepartureTime(), 0.1);
+		Assertions.assertEquals(5, departures.keySet().size(), "wrong number of departures after copying");
+		Assertions.assertTrue(oldDeparturesStillExist(departures),
+				"At least one of the old Departures does not exist any longer or has a wrong departure time after copying");
+		Assertions.assertFalse(departures.containsKey(Id.create("copied-24h_lateArrivalBeforeMidnight", Departure.class)),
+				"Departure lateArrivalBeforeMidnight was copied although it arrives before midnight");
+		Assertions.assertEquals(23.0*3600 + 55*60 - 24*3600,
+				departures.get(Id.create("copied-24h_lateArrivalAfterMidnight", Departure.class)).getDepartureTime(), 0.1,
+				"Departure lateArrivalAfterMidnight was not copied or has wrong departure time");
 		
 		// with exclusion, copyDespiteArrivalBeforeMidnight=true
 		f = new DepartureCopyingFixture();
@@ -87,14 +85,13 @@ public class TransitSchedulePostProcessToolsTest {
 		TransitSchedulePostProcessTools.copyLateDeparturesToStartOfDay(schedule, 23*3600, "After", true);
 		departures = schedule.getTransitLines().get(redLineId).getRoutes().get(redFirstToLastRouteId).getDepartures();
 		
-		Assert.assertEquals("wrong number of departures after copying", 5, departures.keySet().size());
-		Assert.assertTrue("At least one of the old Departures does not exist any longer or has a wrong departure time after copying", 
-				oldDeparturesStillExist(departures));
-		Assert.assertEquals("Departure lateArrivalBeforeMidnight was not copied or has wrong departure time", 
-				23.0*3600 + 45*60 - 24*3600, 
-				departures.get(Id.create("copied-24h_lateArrivalBeforeMidnight", Departure.class)).getDepartureTime(), 0.1);
-		Assert.assertFalse("Departure lateArrivalAfterMidnight was copied although it contains the exclusionMarker", 
-				departures.containsKey(Id.create("copied-24h_lateArrivalAfterMidnight", Departure.class)));
+		Assertions.assertEquals(5, departures.keySet().size(), "wrong number of departures after copying");
+		Assertions.assertTrue(oldDeparturesStillExist(departures), "At least one of the old Departures does not exist any longer or has a wrong departure time after copying");
+		Assertions.assertEquals(23.0*3600 + 45*60 - 24*3600,
+				departures.get(Id.create("copied-24h_lateArrivalBeforeMidnight", Departure.class)).getDepartureTime(), 0.1,
+				"Departure lateArrivalBeforeMidnight was not copied or has wrong departure time");
+		Assertions.assertFalse(departures.containsKey(Id.create("copied-24h_lateArrivalAfterMidnight", Departure.class)),
+				"Departure lateArrivalAfterMidnight was copied although it contains the exclusionMarker");
 	}
 	
 	@Test
@@ -109,15 +106,14 @@ public class TransitSchedulePostProcessToolsTest {
 		Map<Id<Departure>, Departure> departures = 
 				schedule.getTransitLines().get(redLineId).getRoutes().get(redFirstToLastRouteId).getDepartures();
 		
-		Assert.assertEquals("wrong number of departures after copying", 6, departures.keySet().size());
-		Assert.assertTrue("At least one of the old Departures does not exist any longer or has a wrong departure time after copying", 
-				oldDeparturesStillExist(departures));
-		Assert.assertEquals("Departure early was not copied or has wrong departure time", 
-				6.0*3600 + 24*3600, 
-				departures.get(Id.create("copied+24h_early", Departure.class)).getDepartureTime(), 0.1);
-		Assert.assertEquals("Departure midday was not copied or has wrong departure time", 
-				12.0*3600 + 24*3600, 
-				departures.get(Id.create("copied+24h_midday", Departure.class)).getDepartureTime(), 0.1);
+		Assertions.assertEquals(6, departures.keySet().size(), "wrong number of departures after copying");
+		Assertions.assertTrue(oldDeparturesStillExist(departures), "At least one of the old Departures does not exist any longer or has a wrong departure time after copying");
+		Assertions.assertEquals(6.0*3600 + 24*3600,
+				departures.get(Id.create("copied+24h_early", Departure.class)).getDepartureTime(), 0.1,
+				"Departure early was not copied or has wrong departure time");
+		Assertions.assertEquals(12.0*3600 + 24*3600,
+				departures.get(Id.create("copied+24h_midday", Departure.class)).getDepartureTime(), 0.1,
+				"Departure midday was not copied or has wrong departure time");
 		
 		// with exclusion
 		f = new DepartureCopyingFixture();
@@ -125,14 +121,13 @@ public class TransitSchedulePostProcessToolsTest {
 		TransitSchedulePostProcessTools.copyEarlyDeparturesToFollowingNight(schedule, 13*3600, "ear");
 		departures = schedule.getTransitLines().get(redLineId).getRoutes().get(redFirstToLastRouteId).getDepartures();
 		
-		Assert.assertEquals("wrong number of departures after copying", 5, departures.keySet().size());
-		Assert.assertTrue("At least one of the old Departures does not exist any longer or has a wrong departure time after copying", 
-				oldDeparturesStillExist(departures));
-		Assert.assertEquals("Departure midday was not copied or has wrong departure time", 
-				12.0*3600 + 24*3600, 
-				departures.get(Id.create("copied+24h_midday", Departure.class)).getDepartureTime(), 0.1);
-		Assert.assertFalse("Departure early was copied although it contains the exclusionMarker", 
-				departures.containsKey(Id.create("copied+24h_early", Departure.class)));
+		Assertions.assertEquals(5, departures.keySet().size(), "wrong number of departures after copying");
+		Assertions.assertTrue(oldDeparturesStillExist(departures), "At least one of the old Departures does not exist any longer or has a wrong departure time after copying");
+		Assertions.assertEquals(12.0*3600 + 24*3600,
+				departures.get(Id.create("copied+24h_midday", Departure.class)).getDepartureTime(), 0.1,
+				"Departure midday was not copied or has wrong departure time");
+		Assertions.assertFalse(departures.containsKey(Id.create("copied+24h_early", Departure.class)),
+				"Departure early was copied although it contains the exclusionMarker");
 	}
 	
 	private boolean oldDeparturesStillExist(Map<Id<Departure>, Departure> departures)  {
@@ -140,10 +135,10 @@ public class TransitSchedulePostProcessToolsTest {
 				&& departures.containsKey(Id.create("midday", Departure.class))
 				&& departures.containsKey(Id.create("lateArrivalBeforeMidnight", Departure.class))
 				&& departures.containsKey(Id.create("lateArrivalAfterMidnight", Departure.class))
-				&& new Double (6.0*3600).equals(departures.get(Id.create("early", Departure.class)).getDepartureTime())
-				&& new Double (12.0*3600).equals(departures.get(Id.create("midday", Departure.class)).getDepartureTime())
-				&& new Double (23.0*3600 + 45*60).equals(departures.get(Id.create("lateArrivalBeforeMidnight", Departure.class)).getDepartureTime())
-				&& new Double (23.0*3600 + 55*60).equals(departures.get(Id.create("lateArrivalAfterMidnight", Departure.class)).getDepartureTime())) {
+				&& Double.valueOf (6.0*3600).equals(departures.get(Id.create("early", Departure.class)).getDepartureTime())
+				&& Double.valueOf (12.0*3600).equals(departures.get(Id.create("midday", Departure.class)).getDepartureTime())
+				&& Double.valueOf (23.0*3600 + 45*60).equals(departures.get(Id.create("lateArrivalBeforeMidnight", Departure.class)).getDepartureTime())
+				&& Double.valueOf (23.0*3600 + 55*60).equals(departures.get(Id.create("lateArrivalAfterMidnight", Departure.class)).getDepartureTime())) {
 					return true;
 				} else {
 					return false;

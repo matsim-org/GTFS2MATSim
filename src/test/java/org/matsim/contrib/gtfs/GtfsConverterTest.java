@@ -1,25 +1,21 @@
 package org.matsim.contrib.gtfs;
 
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.geometry.transformations.TransformationFactory;
-import org.matsim.pt.transitSchedule.api.TransitScheduleReader;
 import org.matsim.pt.transitSchedule.api.TransitScheduleWriter;
 import org.matsim.testcases.MatsimTestUtils;
 
 import java.nio.file.Path;
-import java.text.Normalizer;
 import java.time.LocalDate;
-
-import static org.junit.Assert.*;
 
 public class GtfsConverterTest {
 
-    @Rule
+    @RegisterExtension
     public MatsimTestUtils utils = new MatsimTestUtils();
 
     @Test

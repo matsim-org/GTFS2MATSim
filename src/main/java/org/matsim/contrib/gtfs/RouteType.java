@@ -52,12 +52,12 @@ public enum RouteType {
 	
 	SUBURBAN_RAILWAY_SERVICE(300, "Suburban Railway Service", RAIL),
 	
-	URBAN_RAILWAY_SERVICE(400, "Urban Railway Service", RAIL),
+	URBAN_RAILWAY_SERVICE(400, "Urban Railway Service", SUBWAY),
 	METRO_SERVICE(401, "Metro Service", SUBWAY),
 	UNDERGROUND_SERVICE(402, "Underground Service", SUBWAY),
-	URBAN_RAILWAY_SERVICE_2(403, "Urban Railway Service", RAIL),
-	ALL_URABN_RAILWAY_SERVICES(404, "All Urban Railway Services", RAIL),
-	MONORAIL(405, "Monorail", RAIL),
+	URBAN_RAILWAY_SERVICE_2(403, "Urban Railway Service", SUBWAY),
+	ALL_URBAN_RAILWAY_SERVICES(404, "All Urban Railway Services", SUBWAY),
+	MONORAIL(405, "Monorail", SUBWAY),
 	
 	METRO_SERVICE_2(500, "Metro Service", SUBWAY),
 	
@@ -116,20 +116,20 @@ public enum RouteType {
 	ALL_WATER_TRANSPORT_SERVICES(1021, "All Water Transport Services", FERRY),
 	
 	AIR_SERVICE(1100, "Air Service"),
-	INTERNATIONAL_AIR_SERVICE(1101, "International Air Service"),
-	DOMESTIC_AIR_SERVICE(1102, "Domestic Air Service"),
-	INTERCONTINENTAL_AIR_SERVICE(1103, "Intercontinental Air Service"),
-	DOMESTIC_SCHEDULED_SIR_SERVICE(1104, "Domestic Scheduled Air Service"),
-	SHUTTLE_AIR_SERVICE(1105, "Shuttle Air Service"),
-	INTERCONTINENTAL_CHARTER_AIR_SERVICE(1106, "Intercontinental Charter Air Service"),
-	INTERNATIONAL_CHARTER_AIR_SERVICE(1107, "International Charter Air Service"),
-	ROUND_TRIP_CHARTER_AIR_SERVICE(1108, "Round-Trip Charter Air Service"),
-	SIGHTSEEING_AIR_SERVICE(1109, "Sightseeing Air Service"),
-	HELICOPTER_AOR_SERVICE(1110, "Helicopter Air Service"),
-	DOMESTIC_CHARTER_AIR_SERVICE(1111, "Domestic Charter Air Service"),
-	SCHENGEN_AREA_AIR_SERVICE(1112, "Schengen-Area Air Service"),
-	AIRSHIP_SERVICE(1113, "Airship Service"),
-	ALL_AIR_SERVICE(1114, "All Air Services"),
+	INTERNATIONAL_AIR_SERVICE(1101, "International Air Service", AIR_SERVICE),
+	DOMESTIC_AIR_SERVICE(1102, "Domestic Air Service", AIR_SERVICE),
+	INTERCONTINENTAL_AIR_SERVICE(1103, "Intercontinental Air Service", AIR_SERVICE),
+	DOMESTIC_SCHEDULED_SIR_SERVICE(1104, "Domestic Scheduled Air Service", AIR_SERVICE),
+	SHUTTLE_AIR_SERVICE(1105, "Shuttle Air Service", AIR_SERVICE),
+	INTERCONTINENTAL_CHARTER_AIR_SERVICE(1106, "Intercontinental Charter Air Service", AIR_SERVICE),
+	INTERNATIONAL_CHARTER_AIR_SERVICE(1107, "International Charter Air Service", AIR_SERVICE),
+	ROUND_TRIP_CHARTER_AIR_SERVICE(1108, "Round-Trip Charter Air Service", AIR_SERVICE),
+	SIGHTSEEING_AIR_SERVICE(1109, "Sightseeing Air Service", AIR_SERVICE),
+	HELICOPTER_AOR_SERVICE(1110, "Helicopter Air Service", AIR_SERVICE),
+	DOMESTIC_CHARTER_AIR_SERVICE(1111, "Domestic Charter Air Service", AIR_SERVICE),
+	SCHENGEN_AREA_AIR_SERVICE(1112, "Schengen-Area Air Service", AIR_SERVICE),
+	AIRSHIP_SERVICE(1113, "Airship Service", AIR_SERVICE),
+	ALL_AIR_SERVICE(1114, "All Air Services", AIR_SERVICE),
 	
 	FERRY_SERVICE(1200, "Ferry Service", FERRY),
 	
@@ -147,23 +147,23 @@ public enum RouteType {
 	ALL_FUNICULAR_SERVICE(1402, "All Funicular Service", FUNICULAR),
 	
 	TAXI_SERVICE(1500, "Taxi Service"),
-	COMMUNAL_TAXI_SERVICE(1501, "Communal Taxi Service"),
-	WATER_TAXI_SERVICE(1502, "Water Taxi Service"),
-	RAIL_TAXI_SERVICE(1503, "Rail Taxi Service"),
-	BIKE_TAXI_SERVICE(1504, "Bike Taxi Service"),
-	LICENSED_TAXI_SERVICE(1505, "Licensed Taxi Service"),
-	PRIVATE_HIRE_SERVICE_VEHICLE(1506, "Private Hire Service Vehicle"),
-	ALL_TAXI_SERVICES(1507, "All Taxi Services"),
+	COMMUNAL_TAXI_SERVICE(1501, "Communal Taxi Service", TAXI_SERVICE),
+	WATER_TAXI_SERVICE(1502, "Water Taxi Service", TAXI_SERVICE),
+	RAIL_TAXI_SERVICE(1503, "Rail Taxi Service", TAXI_SERVICE),
+	BIKE_TAXI_SERVICE(1504, "Bike Taxi Service", TAXI_SERVICE),
+	LICENSED_TAXI_SERVICE(1505, "Licensed Taxi Service", TAXI_SERVICE),
+	PRIVATE_HIRE_SERVICE_VEHICLE(1506, "Private Hire Service Vehicle", TAXI_SERVICE),
+	ALL_TAXI_SERVICES(1507, "All Taxi Services", TAXI_SERVICE),
 	
 	SELF_DRIVE(1600, "Self Drive"),
-	HIRE_CAR(1601, "Hire Car"),
-	HIRE_VAN(1602, "Hire Van"),
-	HIRE_MOTORBIKE(1603, "Hire Motorbike"),
-	HIRE_CYCLE(1604, "Hire Cycle"),
+	HIRE_CAR(1601, "Hire Car", SELF_DRIVE),
+	HIRE_VAN(1602, "Hire Van", SELF_DRIVE),
+	HIRE_MOTORBIKE(1603, "Hire Motorbike", SELF_DRIVE),
+	HIRE_CYCLE(1604, "Hire Cycle", SELF_DRIVE),
 	
 	MISCELLANEOUS_SERVICE(1700, "Miscellaneous Service"),
 	CABLE_CAR_2(1701, "Cable Car", CABLE_CAR),
-	HORSE_DRAWN_CARRIAGE(1702, "Horse-drawn Carriage");	
+	HORSE_DRAWN_CARRIAGE(1702, "Horse-drawn Carriage", MISCELLANEOUS_SERVICE);
 	
 	private static final Map<Integer, RouteType> routeTypes = new HashMap<>();
 	private final int code;
@@ -176,13 +176,13 @@ public enum RouteType {
 		}
 	}
 	
-	private RouteType(int code, String name, RouteType standardType) {
+	RouteType(int code, String name, RouteType standardType) {
 		this.code = code;
 		this.name = name;
 		this.simpleRouteType = standardType;
 	}
 	
-	private RouteType(int code, String name) {
+	RouteType(int code, String name) {
 		this.code = code;
 		this.name = name;
 		this.simpleRouteType = null;

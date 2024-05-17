@@ -1,8 +1,8 @@
 package org.matsim.contrib.gtfs;
 
 import com.conveyal.gtfs.GTFSFeed;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.matsim.api.core.v01.Id;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
@@ -46,30 +46,30 @@ public class GtfsTest {
     private void compareTransitSchedules(MutableScenario sc1, MutableScenario sc2) {
         TransitSchedule ts1 = sc1.getTransitSchedule();
         TransitSchedule ts2 = sc2.getTransitSchedule();
-        Assert.assertEquals(ts1.getFacilities().size(), ts2.getFacilities().size());
+        Assertions.assertEquals(ts1.getFacilities().size(), ts2.getFacilities().size());
         for (Id<TransitStopFacility> stopId : ts1.getFacilities().keySet()) {
-            Assert.assertEquals(ts1.getFacilities().get(stopId).getName(), ts2.getFacilities().get(stopId).getName());
-            Assert.assertEquals(ts1.getFacilities().get(stopId).getCoord(), ts2.getFacilities().get(stopId).getCoord());
-            Assert.assertEquals(ts1.getFacilities().get(stopId).getLinkId(), ts2.getFacilities().get(stopId).getLinkId());
+            Assertions.assertEquals(ts1.getFacilities().get(stopId).getName(), ts2.getFacilities().get(stopId).getName());
+            Assertions.assertEquals(ts1.getFacilities().get(stopId).getCoord(), ts2.getFacilities().get(stopId).getCoord());
+            Assertions.assertEquals(ts1.getFacilities().get(stopId).getLinkId(), ts2.getFacilities().get(stopId).getLinkId());
         }
-        Assert.assertEquals(ts1.getTransitLines().size(), ts2.getTransitLines().size());
+        Assertions.assertEquals(ts1.getTransitLines().size(), ts2.getTransitLines().size());
         for (Id<TransitLine> lineId : ts1.getTransitLines().keySet()) {
-            Assert.assertEquals(ts1.getTransitLines().get(lineId).getRoutes().size(), ts1.getTransitLines().get(lineId).getRoutes().size());
-            Assert.assertEquals(ts1.getTransitLines().get(lineId).getAttributes().getAttribute("gtfs_agency_id"), ts2.getTransitLines().get(lineId).getAttributes().getAttribute("gtfs_agency_id"));
-            Assert.assertEquals(ts1.getTransitLines().get(lineId).getAttributes().getAttribute("gtfs_route_type"), ts2.getTransitLines().get(lineId).getAttributes().getAttribute("gtfs_route_type"));
-            Assert.assertEquals(ts1.getTransitLines().get(lineId).getAttributes().getAttribute("gtfs_route_short_name"), ts2.getTransitLines().get(lineId).getAttributes().getAttribute("gtfs_route_short_name"));
+            Assertions.assertEquals(ts1.getTransitLines().get(lineId).getRoutes().size(), ts1.getTransitLines().get(lineId).getRoutes().size());
+            Assertions.assertEquals(ts1.getTransitLines().get(lineId).getAttributes().getAttribute("gtfs_agency_id"), ts2.getTransitLines().get(lineId).getAttributes().getAttribute("gtfs_agency_id"));
+            Assertions.assertEquals(ts1.getTransitLines().get(lineId).getAttributes().getAttribute("gtfs_route_type"), ts2.getTransitLines().get(lineId).getAttributes().getAttribute("gtfs_route_type"));
+            Assertions.assertEquals(ts1.getTransitLines().get(lineId).getAttributes().getAttribute("gtfs_route_short_name"), ts2.getTransitLines().get(lineId).getAttributes().getAttribute("gtfs_route_short_name"));
 
             for (Id<TransitRoute> routeId : ts1.getTransitLines().get(lineId).getRoutes().keySet()) {
                 TransitRoute tr1 = ts1.getTransitLines().get(lineId).getRoutes().get(routeId);
                 TransitRoute tr2 = ts2.getTransitLines().get(lineId).getRoutes().get(routeId);
-                Assert.assertEquals(tr1.getStops().size(), tr2.getStops().size());
-                Assert.assertEquals(tr1.getTransportMode(), tr2.getTransportMode());
+                Assertions.assertEquals(tr1.getStops().size(), tr2.getStops().size());
+                Assertions.assertEquals(tr1.getTransportMode(), tr2.getTransportMode());
                 for (TransitRouteStop trStop : tr1.getStops()) {
-                    Assert.assertEquals(trStop.isAwaitDepartureTime(), tr2.getStops().get(tr1.getStops().indexOf(trStop)).isAwaitDepartureTime());
-                    Assert.assertEquals(trStop.getDepartureOffset().seconds(), tr2.getStops().get(tr1.getStops().indexOf(trStop)).getDepartureOffset().seconds(), 0.0);
-                    Assert.assertEquals(trStop.getArrivalOffset().seconds(), tr2.getStops().get(tr1.getStops().indexOf(trStop)).getArrivalOffset().seconds(), 0.0);
+                    Assertions.assertEquals(trStop.isAwaitDepartureTime(), tr2.getStops().get(tr1.getStops().indexOf(trStop)).isAwaitDepartureTime());
+                    Assertions.assertEquals(trStop.getDepartureOffset().seconds(), tr2.getStops().get(tr1.getStops().indexOf(trStop)).getDepartureOffset().seconds(), 0.0);
+                    Assertions.assertEquals(trStop.getArrivalOffset().seconds(), tr2.getStops().get(tr1.getStops().indexOf(trStop)).getArrivalOffset().seconds(), 0.0);
                 }
-                Assert.assertEquals(tr1.getDepartures().size(), tr2.getDepartures().size());
+                Assertions.assertEquals(tr1.getDepartures().size(), tr2.getDepartures().size());
             }
         }
     }
@@ -94,7 +94,7 @@ public class GtfsTest {
                 .stream()
                 .flatMap(transitLine -> transitLine.getRoutes().values().stream())
                 .mapToInt(r->r.getDepartures().values().size()).sum();
-        Assert.assertEquals(144,departuresWeekend);
+        Assertions.assertEquals(144,departuresWeekend);
 
         MutableScenario scenarioWeekdays = (MutableScenario) ScenarioUtils.createScenario(config);
         //Monday
@@ -111,7 +111,7 @@ public class GtfsTest {
                 .stream()
                 .flatMap(transitLine -> transitLine.getRoutes().values().stream())
                 .mapToInt(r->r.getDepartures().values().size()).sum();
-        Assert.assertEquals(140,departures);
+        Assertions.assertEquals(140,departures);
 
         MutableScenario scenarioThreeWeekdaysAndTwoWeekendDays = (MutableScenario) ScenarioUtils.createScenario(config);
         //Monday
@@ -128,7 +128,7 @@ public class GtfsTest {
                 .stream()
                 .flatMap(transitLine -> transitLine.getRoutes().values().stream())
                 .mapToInt(r->r.getDepartures().values().size()).sum();
-        Assert.assertEquals(3*departures+2*departuresWeekend,departuresThree);
+        Assertions.assertEquals(3*departures+2*departuresWeekend,departuresThree);
 
     }
 
@@ -150,7 +150,7 @@ public class GtfsTest {
 
         converter.convert();
 
-        Assert.assertEquals(5, scenario.getTransitSchedule().getTransitLines().size());
+        Assertions.assertEquals(5, scenario.getTransitSchedule().getTransitLines().size());
     }
 
     @Test
@@ -169,7 +169,7 @@ public class GtfsTest {
                 .build();
 
         converter.convert();
-        Assert.assertEquals(0, scenario.getTransitSchedule().getTransitLines().size());
+        Assertions.assertEquals(0, scenario.getTransitSchedule().getTransitLines().size());
 
     }
 
@@ -205,15 +205,15 @@ public class GtfsTest {
             routes += line.getRoutes().size();
         }
 
-        Assert.assertEquals(9, schedule.getFacilities().size());
+        Assertions.assertEquals(9, schedule.getFacilities().size());
 
         if (weekend) {
-            Assert.assertEquals(5, schedule.getTransitLines().size());
+            Assertions.assertEquals(5, schedule.getTransitLines().size());
             //the 4 trips of AAMV line are consolidated into 2. That makes 11 trips/routes decrease to 9.
-            Assert.assertEquals(9, routes);
+            Assertions.assertEquals(9, routes);
         } else {
-            Assert.assertEquals(4, schedule.getTransitLines().size());
-            Assert.assertEquals(7, routes);
+            Assertions.assertEquals(4, schedule.getTransitLines().size());
+            Assertions.assertEquals(7, routes);
         }
     }
 }
