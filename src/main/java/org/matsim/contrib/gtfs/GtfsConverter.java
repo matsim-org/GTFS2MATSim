@@ -318,6 +318,7 @@ public class GtfsConverter {
             tr = ts.getFactory().createTransitRoute(routeId, /*networkRoute*/ null, stops, routeType.getTypeName());
         }
         tr.getAttributes().putAttribute("SimpleRouteType", routeType.getSimpleTypeName());
+        tr.getAttributes().putAttribute("gtfsRouteType", routeType);
         tl.addRoute(tr);
         return tr;
     }
