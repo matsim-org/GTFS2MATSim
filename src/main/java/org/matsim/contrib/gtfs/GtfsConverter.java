@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.text.Normalizer;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -27,6 +28,8 @@ public class GtfsConverter {
     private final CoordinateTransformation transform;
     private final TransitSchedule ts;
     private final Predicate<Trip> includeTrip;
+    private final Consumer<Stop> transformStop;
+    private final Consumer<Route> transformRoute;
     private final Predicate<Stop> includeStop;
     private final Predicate<String> includeAgency;
     private final Predicate<Integer> includeRouteType;
@@ -50,6 +53,8 @@ public class GtfsConverter {
         this.startDate = builder.startDate;
         this.useExtendedRouteTypes = builder.useExtendedRouteTypes;
         this.includeTrip = builder.includeTrip;
+        this.transformStop = builder.transformStop;
+        this.transformRoute = builder.transformRoute;
         this.includeStop = builder.includeStop;
         this.includeAgency = builder.includeAgency;
         this.includeRouteType = builder.includeRouteType;
@@ -68,6 +73,10 @@ public class GtfsConverter {
 
 
     public void convert() {
+
+        if (transformRoute != null) {
+            feed.routes.values().forEach(transformRoute);
+        }
 
         // Put all stops in the Schedule
         this.convertStops();
@@ -165,6 +174,11 @@ public class GtfsConverter {
         Map<Coord, Id<TransitStopFacility>> coords = new HashMap<>();
 
         for (Stop stop : feed.stops.values()) {
+
+            if (transformStop != null) {
+                transformStop.accept(stop);
+            }
+
             if (!includeStop.test(stop))
                 continue;
 
@@ -351,6 +365,8 @@ public class GtfsConverter {
         private boolean includeMinimalTransferTimes = false;
         private Scenario scenario;
         private Predicate<Trip> includeTrip = (t) -> true;
+        private Consumer<Stop> transformStop = (t) -> {};
+        private Consumer<Route> transformRoute = (t) -> {};
         private Predicate<Stop> includeStop = (t) -> true;
         private Predicate<String> includeAgency = (t) -> true;
         private Predicate<Integer> includeRouteType = (t) -> true;
@@ -445,6 +461,19 @@ public class GtfsConverter {
          */
         public Builder setIncludeRouteType(Predicate<Integer> includeRouteType) {
             this.includeRouteType = includeRouteType;
+            return this;
+        }
+
+        /**
+         * Function to transform {@link Stop}.
+         */
+        public Builder setTransformStop(Consumer<Stop> transformStop) {
+            this.transformStop = transformStop;
+            return this;
+        }
+
+        public Builder setTransformRoute(Consumer<Route> transformRoute) {
+            this.transformRoute = transformRoute;
             return this;
         }
 
