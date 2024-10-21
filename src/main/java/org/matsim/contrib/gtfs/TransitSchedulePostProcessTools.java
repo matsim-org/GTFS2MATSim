@@ -23,10 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.matsim.api.core.v01.Id;
-import org.matsim.pt.transitSchedule.api.Departure;
-import org.matsim.pt.transitSchedule.api.TransitLine;
-import org.matsim.pt.transitSchedule.api.TransitRoute;
-import org.matsim.pt.transitSchedule.api.TransitSchedule;
+import org.matsim.pt.transitSchedule.api.*;
 
 /**
  * 
@@ -57,12 +54,17 @@ public class TransitSchedulePostProcessTools {
 			String departureExclusionMarker, boolean copyDespiteArrivalBeforeMidnight) {
 		for (TransitLine line: schedule.getTransitLines().values()) {
 			for (TransitRoute route: line.getRoutes().values()) {
+
+				List<TransitRouteStop> stops = route.getStops();
+				if (stops.isEmpty())
+					continue;
+
 				List<Departure> departuresToBeAdded = new ArrayList<>();
 				
 				for (Departure dep: route.getDepartures().values()) {
 					double oldDepartureTime = dep.getDepartureTime();
 					// do not copy Departures which arrive before midnight ()
-					double arrivalAtLastStop = dep.getDepartureTime() + route.getStops().get(route.getStops().size() - 1).getArrivalOffset().seconds();
+					double arrivalAtLastStop = dep.getDepartureTime() + stops.get(stops.size() - 1).getArrivalOffset().seconds();
 					if (oldDepartureTime > startTimeOfCopying && 
 							(departureExclusionMarker== null || !dep.getId().toString().contains(departureExclusionMarker)) &&
 							(copyDespiteArrivalBeforeMidnight || arrivalAtLastStop >= 24*3600) ) {
@@ -97,7 +99,11 @@ public class TransitSchedulePostProcessTools {
 		for (TransitLine line: schedule.getTransitLines().values()) {
 			for (TransitRoute route: line.getRoutes().values()) {
 				List<Departure> departuresToBeAdded = new ArrayList<>();
-				
+
+				List<TransitRouteStop> stops = route.getStops();
+				if (stops.isEmpty())
+					continue;
+
 				for (Departure dep: route.getDepartures().values()) {
 					double oldDepartureTime = dep.getDepartureTime();
 					if (oldDepartureTime < endTimeOfCopying && 
