@@ -7,6 +7,7 @@ import org.apache.logging.log4j.Logger;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
+import org.matsim.core.utils.geometry.CoordUtils;
 import org.matsim.core.utils.geometry.CoordinateTransformation;
 import org.matsim.core.utils.misc.Time;
 import org.matsim.pt.transitSchedule.api.*;
@@ -182,7 +183,7 @@ public class GtfsConverter {
             if (!includeStop.test(stop))
                 continue;
 
-            Coord coord = this.transform.transform(new Coord(stop.stop_lon, stop.stop_lat));
+            Coord coord = CoordUtils.round(this.transform.transform(new Coord(stop.stop_lon, stop.stop_lat)));
 
             // Already have a stop with same coord
             if (mergeStops && coords.containsKey(coord)) {
