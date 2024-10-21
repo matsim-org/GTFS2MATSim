@@ -76,7 +76,12 @@ public class GtfsConverter {
     public void convert() {
 
         if (transformRoute != null) {
-            feed.routes.values().forEach(transformRoute);
+            List<Map.Entry<String, Route>> routes = feed.routes.entrySet().stream().toList();
+            // Values are transformed and put back into the map so that the information is updated
+            for (Map.Entry<String, Route> e : routes) {
+                transformRoute.accept(e.getValue());
+                feed.routes.put(e.getKey(), e.getValue());
+            }
         }
 
         // Put all stops in the Schedule
