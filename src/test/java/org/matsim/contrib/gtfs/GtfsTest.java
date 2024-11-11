@@ -32,8 +32,6 @@ public class GtfsTest {
 
         gtfs.convert();
 
-        (new TransitScheduleWriter(scenario.getTransitSchedule())).writeFile("avs.xml");
-
         // The Conversion is done, now read the checked scenario
         MutableScenario checkedScenario = (MutableScenario) (ScenarioUtils.createScenario(config));
         new TransitScheduleReader(checkedScenario).readFile("test/input/transitSchedule.xml");
