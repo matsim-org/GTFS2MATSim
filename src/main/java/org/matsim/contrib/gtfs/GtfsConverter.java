@@ -156,6 +156,7 @@ public class GtfsConverter {
                     }
                     tl.getAttributes().putAttribute("gtfs_route_short_name",
                             Normalizer.normalize(routeShortName, Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "")); // replaces non ascii symbols
+                    tl.setName(routeShortName);
                 }
             });
 

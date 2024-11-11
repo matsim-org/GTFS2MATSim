@@ -32,6 +32,8 @@ public class GtfsTest {
 
         gtfs.convert();
 
+        (new TransitScheduleWriter(scenario.getTransitSchedule())).writeFile("avs.xml");
+
         // The Conversion is done, now read the checked scenario
         MutableScenario checkedScenario = (MutableScenario) (ScenarioUtils.createScenario(config));
         new TransitScheduleReader(checkedScenario).readFile("test/input/transitSchedule.xml");
@@ -58,6 +60,8 @@ public class GtfsTest {
             Assertions.assertEquals(ts1.getTransitLines().get(lineId).getAttributes().getAttribute("gtfs_agency_id"), ts2.getTransitLines().get(lineId).getAttributes().getAttribute("gtfs_agency_id"));
             Assertions.assertEquals(ts1.getTransitLines().get(lineId).getAttributes().getAttribute("gtfs_route_type"), ts2.getTransitLines().get(lineId).getAttributes().getAttribute("gtfs_route_type"));
             Assertions.assertEquals(ts1.getTransitLines().get(lineId).getAttributes().getAttribute("gtfs_route_short_name"), ts2.getTransitLines().get(lineId).getAttributes().getAttribute("gtfs_route_short_name"));
+            Assertions.assertEquals(ts1.getTransitLines().get(lineId).getName(), ts2.getTransitLines().get(lineId).getName());
+
 
             for (Id<TransitRoute> routeId : ts1.getTransitLines().get(lineId).getRoutes().keySet()) {
                 TransitRoute tr1 = ts1.getTransitLines().get(lineId).getRoutes().get(routeId);
