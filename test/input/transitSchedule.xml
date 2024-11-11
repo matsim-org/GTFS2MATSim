@@ -6,7 +6,7 @@
 		<stopFacility id="TEST_STOP_1" x="-116.784582" y="36.868446" name="GTFS TEST STOP 1"/>
 		<stopFacility id="TEST_STOP_2" x="-116.751677" y="36.915682" name="GTFS TEST STOP 2"/>
 	</transitStops>
-	<transitLine id="Test Route---TEST_ROUTE">
+	<transitLine id="Test Route---TEST_ROUTE" name="Test Route">
 		<attributes>
 			<attribute name="gtfs_agency_id" class="java.lang.String" >Unitrans</attribute>
 			<attribute name="gtfs_route_short_name" class="java.lang.String" >Test Route</attribute>
