@@ -53,6 +53,12 @@ public class GtfsTest {
             Assertions.assertEquals(ts1.getFacilities().get(stopId).getName(), ts2.getFacilities().get(stopId).getName());
             Assertions.assertEquals(ts1.getFacilities().get(stopId).getCoord(), ts2.getFacilities().get(stopId).getCoord());
             Assertions.assertEquals(ts1.getFacilities().get(stopId).getLinkId(), ts2.getFacilities().get(stopId).getLinkId());
+            /*
+             * TODO: the current gtfs test feed does not contain a parent_station. Modify test input.
+             * https://gtfs.org/getting-started/example-feed/ has other example files which do not add up to a full
+             * gtfs feed and links a sample feed which lacks the parent_station field.
+             */
+            Assertions.assertEquals(ts1.getFacilities().get(stopId).getStopAreaId(), ts2.getFacilities().get(stopId).getStopAreaId());
         }
         Assertions.assertEquals(ts1.getTransitLines().size(), ts2.getTransitLines().size());
         for (Id<TransitLine> lineId : ts1.getTransitLines().keySet()) {
