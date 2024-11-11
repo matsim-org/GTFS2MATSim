@@ -211,6 +211,10 @@ public class GtfsConverter {
             if (!ts.getFacilities().containsKey(t.getId()))
                ts.addStopFacility(t);
 
+            if (stop.parent_station != null && !stop.parent_station.isEmpty()) {
+                t.setStopAreaId(Id.create(stop.parent_station, TransitStopArea.class));
+            }
+
             coords.put(coord, t.getId());
         }
     }
