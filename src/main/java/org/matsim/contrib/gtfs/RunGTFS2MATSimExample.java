@@ -17,9 +17,6 @@
  *                                                                         *
  * *********************************************************************** */
 
-/**
- * 
- */
 package org.matsim.contrib.gtfs;
 
 import java.time.LocalDate;
@@ -30,12 +27,8 @@ import org.matsim.core.network.io.NetworkWriter;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.geometry.CoordinateTransformation;
 import org.matsim.core.utils.geometry.transformations.TransformationFactory;
-import org.matsim.pt.transitSchedule.api.TransitScheduleReader;
 import org.matsim.pt.transitSchedule.api.TransitScheduleWriter;
-import org.matsim.pt.utils.CreatePseudoNetwork;
-import org.matsim.pt.utils.CreateVehiclesForSchedule;
 import org.matsim.vehicles.MatsimVehicleWriter;
-import org.matsim.vehicles.VehicleWriterV1;
 
 /**
  * @author  jbischoff
@@ -53,9 +46,9 @@ public final class RunGTFS2MATSimExample {
 		// http://www.vbb.de/de/article/fahrplan/webservices/datensaetze/1186967.html
 		
 		//input data
-		String gtfsZipFile = "";
-		CoordinateTransformation ct = TransformationFactory.getCoordinateTransformation(TransformationFactory.WGS84, "EPSG:25833");
-		LocalDate date = LocalDate.parse("2020-06-25");
+		String gtfsZipFile = "../../Downloads/gtfs_komplett_2024-12-01.zip";
+		CoordinateTransformation ct = TransformationFactory.getCoordinateTransformation(TransformationFactory.WGS84, "EPSG:25832");
+		LocalDate date = LocalDate.parse("2024-12-17");
 
 		//output files 
 		String scheduleFile = "transitSchedule.xml.gz";
@@ -64,7 +57,7 @@ public final class RunGTFS2MATSimExample {
 		Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
 
 		//Convert GTFS
-		RunGTFS2MATSim.convertGTFSandAddToScenario(scenario,gtfsZipFile,date,ct,true,true);
+		RunGTFS2MATSim.convertGTFSandAddToScenario(scenario,gtfsZipFile,date,date,ct,true,true, true, GtfsConverter.MergeGtfsStops.doNotMerge);
 
 		//Write out network, vehicles and schedule
 		new NetworkWriter(scenario.getNetwork()).write(networkFile);
