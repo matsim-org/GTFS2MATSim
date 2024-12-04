@@ -17,9 +17,6 @@
  *                                                                         *
  * *********************************************************************** */
 
-/**
- * 
- */
 package org.matsim.contrib.gtfs;
 
 import java.time.LocalDate;
@@ -45,9 +42,9 @@ public class RunGTFS2MATSimExampleRunVehicleCirculation {
 	public static void main(String[] args) {
 		//input data
 		String gtfsZipFile = "testing/gtfs_Berlin.zip";
-		CoordinateTransformation ct = TransformationFactory.getCoordinateTransformation(TransformationFactory.WGS84, "EPSG:25833");
+		CoordinateTransformation ct = TransformationFactory.getCoordinateTransformation(TransformationFactory.WGS84, "EPSG:25832");
 		LocalDate date = LocalDate.parse("2020-11-02");
-		Boolean overrideMinDelay = false;
+		boolean overrideMinDelay = false;
 		int minTurnOverTime = 10;
 		
 		//output files 
@@ -57,7 +54,7 @@ public class RunGTFS2MATSimExampleRunVehicleCirculation {
 		Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
 
 		//Convert GTFS
-		RunGTFS2MATSim.convertGTFSandAddToScenario(scenario,gtfsZipFile,date,ct,true,false);
+		RunGTFS2MATSim.convertGTFSandAddToScenario(scenario,gtfsZipFile,date,date,ct,true,false, false, GtfsConverter.MergeGtfsStops.doNotMerge);
 
 		// copy late/early departures to have at complete schedule from ca. 0:00 to ca. 30:00 
 		// Unfortunately I was having issues with this command. It gives me a fatal error.@gmarburger

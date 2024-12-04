@@ -35,7 +35,7 @@ public class GtfsConverter {
     private final Predicate<String> includeAgency;
     private final Predicate<Integer> includeRouteType;
     private final boolean useExtendedRouteTypes;
-    private final boolean mergeStops;
+    private final MergeGtfsStops mergeStops;
     private final boolean includeMinimalTransferTimes;
     private final String prefix;
     private LocalDate endDate;
@@ -46,6 +46,8 @@ public class GtfsConverter {
      * Stop that have been mapped to the same facility.
      */
     private final Map<String, Id<TransitStopFacility>> mappedStops = new HashMap<>();
+
+    public enum MergeGtfsStops {doNotMerge, mergeStopsAtSameCoord, mergeToGtfsParentStation}
 
     private GtfsConverter(Builder builder) {
         this.feed = Objects.requireNonNull(builder.feed, "Gtfs feed is required, use .setFeed(...)");
@@ -192,12 +194,15 @@ public class GtfsConverter {
             Coord coord = CoordUtils.round(this.transform.transform(new Coord(stop.stop_lon, stop.stop_lat)));
 
             // Already have a stop with same coord
-            if (mergeStops && coords.containsKey(coord)) {
+            if (mergeStops.equals(MergeGtfsStops.mergeStopsAtSameCoord) && coords.containsKey(coord)) {
                 mappedStops.put(stop.stop_id, coords.get(coord));
                 continue;
             }
+            if (mergeStops.equals(MergeGtfsStops.mergeToGtfsParentStation) && stop.parent_station != null) {
+                mappedStops.put(stop.stop_id, getMatsimTransitStopIdFromGtfsStopId(stop.parent_station));
+            }
 
-            TransitStopFacility t = this.ts.getFactory().createTransitStopFacility(Id.create(prefix + stop.stop_id, TransitStopFacility.class), coord, false);
+            TransitStopFacility t = this.ts.getFactory().createTransitStopFacility(getMatsimTransitStopIdFromGtfsStopId(stop.stop_id), coord, false);
 
             Pattern pattern = java.util.regex.Pattern.compile("\\p{C}", Pattern.CASE_INSENSITIVE);
 
@@ -217,6 +222,10 @@ public class GtfsConverter {
 
             coords.put(coord, t.getId());
         }
+    }
+
+    private Id<TransitStopFacility> getMatsimTransitStopIdFromGtfsStopId(String stopId) {
+        return Id.create(prefix + stopId, TransitStopFacility.class);
     }
 
     private void convertTransferTimes() {
@@ -315,7 +324,7 @@ public class GtfsConverter {
     }
 
     private Id<TransitStopFacility> findTransitStop(String stopId) {
-        if (!mergeStops || !mappedStops.containsKey(stopId))
+        if (mergeStops.equals(MergeGtfsStops.doNotMerge) || !mappedStops.containsKey(stopId))
             return Id.create(prefix + stopId, TransitStopFacility.class);
 
         return mappedStops.get(stopId);
@@ -372,7 +381,7 @@ public class GtfsConverter {
         private CoordinateTransformation transform;
         private LocalDate date = LocalDate.now();
         private boolean useExtendedRouteTypes = false;
-        private boolean mergeStops = false;
+        private MergeGtfsStops mergeStops = MergeGtfsStops.doNotMerge;
         private boolean includeMinimalTransferTimes = false;
         private Scenario scenario;
         private Predicate<Trip> includeTrip = (t) -> true;
@@ -504,7 +513,7 @@ public class GtfsConverter {
         /**
          * Merge stops on the same coordinate.
          */
-        public Builder setMergeStops(boolean mergeStops) {
+        public Builder setMergeStops(MergeGtfsStops mergeStops) {
             this.mergeStops = mergeStops;
             return this;
         }

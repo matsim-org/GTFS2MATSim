@@ -30,7 +30,7 @@ public class GtfsConverterTest {
 
         GtfsConverter converter = GtfsConverter.newBuilder()
                 .setScenario(scenario)
-                .setMergeStops(false)
+                .setMergeStops(GtfsConverter.MergeGtfsStops.doNotMerge)
                 .setStartDate(startDate)
                 .setEndDate(endDate)
                 .setTransform(TransformationFactory.getCoordinateTransformation("EPSG:25832", "EPSG:25832"))
