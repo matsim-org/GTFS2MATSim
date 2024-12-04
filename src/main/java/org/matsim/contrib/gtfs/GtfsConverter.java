@@ -200,6 +200,7 @@ public class GtfsConverter {
             }
             if (mergeStops.equals(MergeGtfsStops.mergeToGtfsParentStation) && stop.parent_station != null) {
                 mappedStops.put(stop.stop_id, getMatsimTransitStopIdFromGtfsStopId(stop.parent_station));
+                continue;
             }
 
             TransitStopFacility t = this.ts.getFactory().createTransitStopFacility(getMatsimTransitStopIdFromGtfsStopId(stop.stop_id), coord, false);
