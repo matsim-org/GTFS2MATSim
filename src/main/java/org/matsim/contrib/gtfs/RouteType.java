@@ -1,7 +1,9 @@
 package org.matsim.contrib.gtfs;
 
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -165,7 +167,7 @@ public enum RouteType {
 	CABLE_CAR_2(1701, "Cable Car", CABLE_CAR),
 	HORSE_DRAWN_CARRIAGE(1702, "Horse-drawn Carriage", MISCELLANEOUS_SERVICE);
 	
-	private static final Map<Integer, RouteType> routeTypes = new HashMap<>();
+	private static final Int2ObjectMap<RouteType> routeTypes = new Int2ObjectOpenHashMap<>();
 	private final int code;
 	private final String name;
 	private final RouteType simpleRouteType;
@@ -190,6 +192,10 @@ public enum RouteType {
 	
 	public static Map<Integer, RouteType> getRouteTypes() {
 		return Collections.unmodifiableMap(routeTypes);
+	}
+
+	public static RouteType getRouteType(int code) {
+		return routeTypes.get(code);
 	}
 
 	public String getTypeName() {

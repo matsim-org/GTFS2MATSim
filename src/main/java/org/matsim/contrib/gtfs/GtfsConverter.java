@@ -2,8 +2,6 @@ package org.matsim.contrib.gtfs;
 
 import com.conveyal.gtfs.GTFSFeed;
 import com.conveyal.gtfs.model.*;
-import it.unimi.dsi.fastutil.ints.IntLinkedOpenHashSet;
-import it.unimi.dsi.fastutil.ints.IntSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.matsim.api.core.v01.Coord;
@@ -215,11 +213,13 @@ public class GtfsConverter {
             }
 
             if (routeTypes != null && routeTypes.containsKey(stop.stop_id)) {
-                id = getMatsimTransitStopIdFromGtfsStopId(routeTypes.get(stop.stop_id));
+                String stopId = routeTypes.get(stop.stop_id);
+                id = getMatsimTransitStopIdFromGtfsStopId(stopId);
                 mappedStops.put(stop.stop_id, id);
 
-                // Need to check if facility was already created.
-                if (ts.getFacilities().containsKey(id)) {
+                // Need to check if facility was already created
+                // Also ignore the parent stations that have been flagged to be ignored
+                if (ts.getFacilities().containsKey(id) || stopId.equals("__ignore__")) {
                     continue;
                 }
             }
@@ -251,13 +251,18 @@ public class GtfsConverter {
      */
     private Map<String, String> buildRouteTypes() {
 
-        Map<String, IntSet> routeTypes = new HashMap<>();
+        Map<String, Set<String>> routeTypes = new HashMap<>();
 
         for (Trip trip : feed.trips.values()) {
             Route route = feed.routes.get(trip.route_id);
 
             for (StopTime stopTime : feed.getOrderedStopTimesForTrip(trip.trip_id)) {
-                routeTypes.computeIfAbsent(stopTime.stop_id, k -> new IntLinkedOpenHashSet()).add(route.route_type);
+
+                // Get the simple route type of the station
+                String type = RouteType.getRouteType(route.route_type).getSimpleTypeName();
+
+                // Need to use sorted set
+                routeTypes.computeIfAbsent(stopTime.stop_id, k -> new TreeSet<>()).add(type);
             }
         }
 
@@ -268,9 +273,9 @@ public class GtfsConverter {
             if (stop.parent_station == null)
                 continue;
 
-            result.put(stop.stop_id, stop.parent_station + "_" + routeTypes.getOrDefault(stop.stop_id, IntSet.of()).intStream()
-                    .mapToObj(String::valueOf)
-                    .collect(Collectors.joining("_")));
+            result.put(stop.stop_id, stop.parent_station + "_" +
+                    String.join("_", routeTypes.getOrDefault(stop.stop_id, Set.of())));
+            result.put(stop.parent_station, "__ignore__");
         }
 
         return result;
