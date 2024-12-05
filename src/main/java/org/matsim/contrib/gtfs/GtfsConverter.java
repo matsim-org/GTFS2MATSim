@@ -199,6 +199,13 @@ public class GtfsConverter {
 
         for (Stop stop : feed.stops.values()) {
 
+            if (stop.location_type > 1) {
+                // Matsim needs only location types station (1) and stop/track (0).
+                // This instead is an entry or exit (2) or a generic node on a pathway (3) or a boarding area (4).
+                // The conveyal gtfs-lib is outdated and throws errors if location type > 1 but loads them anyway
+                continue;
+            }
+
             if (transformStop != null) {
                 transformStop.accept(stop);
             }
