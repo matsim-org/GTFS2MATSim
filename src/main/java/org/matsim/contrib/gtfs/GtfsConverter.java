@@ -77,6 +77,18 @@ public class GtfsConverter {
         return new Builder();
     }
 
+
+    /**
+     * Get activate trips for a certain date under the configured filters.
+     */
+    private List<Trip> getActiveTrips(LocalDate... date) {
+        return feed.trips.values().stream()
+                .filter(trip -> Arrays.stream(date).anyMatch(d -> feed.services.get(trip.service_id).activeOn(d)))
+                .filter(this.includeTrip)
+                .filter(this::filterAgencyAndType)
+                .collect(Collectors.toList());
+    }
+
     public void convert() {
 
         if (transformRoute != null) {
@@ -109,7 +121,7 @@ public class GtfsConverter {
             }
         }
 
-        log.info("Earliest date mentioned in feed: " + feedStartDate);
+        log.info("Earliest date mentioned in feed: {}", feedStartDate);
 
         LocalDate feedEndDate = LocalDate.MIN;
         for (Service service : this.feed.services.values()) {
@@ -125,7 +137,7 @@ public class GtfsConverter {
             }
 
         }
-        log.info("Latest date mentioned in feed: " + feedEndDate);
+        log.info("Latest date mentioned in feed: {}", feedEndDate);
         ts.getAttributes().putAttribute("startDate", startDate.toString());
         ts.getAttributes().putAttribute("endDate", endDate.toString());
         LocalDate date = startDate;
@@ -133,15 +145,10 @@ public class GtfsConverter {
         do {
             // Get the used service Id for the chosen weekday and date
             List<String> activeServiceIds = this.getActiveServiceIds(this.feed.services, date);
-            log.info("Active Services: " + activeServiceIds.size());
+            log.info("Active Services: {}", activeServiceIds.size());
 
             // Get the Trips which are active today
-            final LocalDate finalDate = date;
-            List<Trip> activeTrips = feed.trips.values().stream()
-                    .filter(trip -> feed.services.get(trip.service_id).activeOn(finalDate))
-                    .filter(this.includeTrip)
-                    .filter(this::filterAgencyAndType)
-                    .collect(Collectors.toList());
+            List<Trip> activeTrips = getActiveTrips(date);
 
             // Create one TransitLine for each GTFS-Route which has an active trip
             activeTrips.stream().map(trip -> feed.routes.get(trip.route_id)).distinct().forEach(route -> {
@@ -253,7 +260,7 @@ public class GtfsConverter {
 
         Map<String, Set<String>> routeTypes = new HashMap<>();
 
-        for (Trip trip : feed.trips.values()) {
+        for (Trip trip : getActiveTrips(startDate, endDate)) {
             Route route = feed.routes.get(trip.route_id);
 
             for (StopTime stopTime : feed.getOrderedStopTimesForTrip(trip.trip_id)) {
