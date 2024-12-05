@@ -7,6 +7,7 @@ import org.apache.logging.log4j.Logger;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
+import org.matsim.core.utils.collections.Tuple;
 import org.matsim.core.utils.geometry.CoordUtils;
 import org.matsim.core.utils.geometry.CoordinateTransformation;
 import org.matsim.core.utils.misc.Time;
@@ -301,12 +302,19 @@ public class GtfsConverter {
 
 
     private void convertTransferTimes() {
+        Map<Tuple<Id<TransitStopFacility>, Id<TransitStopFacility>>, List<Integer>> gtfsTransferTimes = new HashMap<>();
         for (Transfer transfer : this.feed.transfers.values()) {
             Id<TransitStopFacility> fromStop = findTransitStop(transfer.from_stop_id);
             Id<TransitStopFacility> tostop = findTransitStop(transfer.to_stop_id);
             if (fromStop != null && tostop != null) {
-                this.ts.getMinimalTransferTimes().set(fromStop, tostop, transfer.min_transfer_time);
+                gtfsTransferTimes.putIfAbsent(new Tuple<>(fromStop, tostop), new ArrayList<>());
+                gtfsTransferTimes.get(new Tuple<>(fromStop, tostop)).add(transfer.min_transfer_time);
             }
+        }
+        for (Map.Entry<Tuple<Id<TransitStopFacility>, Id<TransitStopFacility>>, List<Integer>> entry: gtfsTransferTimes.entrySet()) {
+            this.ts.getMinimalTransferTimes().set(entry.getKey().getFirst(), entry.getKey().getSecond(),
+                    entry.getValue().stream().max(Comparator.naturalOrder()).orElse(0));
+            System.out.println(entry.getKey().getFirst().toString() + "," + entry.getKey().getSecond().toString() + "," + entry.getValue().stream().max(Comparator.naturalOrder()).orElse(0) + "," + ts.getFacilities().get(entry.getKey().getFirst()).getCoord().getX() + "," + + ts.getFacilities().get(entry.getKey().getFirst()).getCoord().getY()+ "," + ts.getFacilities().get(entry.getKey().getSecond()).getCoord().getX() + "," + + ts.getFacilities().get(entry.getKey().getSecond()).getCoord().getY());
         }
     }
 
@@ -449,7 +457,7 @@ public class GtfsConverter {
         private LocalDate date = LocalDate.now();
         private boolean useExtendedRouteTypes = false;
         private MergeGtfsStops mergeStops = MergeGtfsStops.doNotMerge;
-        private boolean includeMinimalTransferTimes = false;
+        private boolean includeMinimalTransferTimes = true;
         private Scenario scenario;
         private Predicate<Trip> includeTrip = (t) -> true;
         private Consumer<Stop> transformStop = (t) -> {
