@@ -13,6 +13,7 @@ import org.matsim.pt.transitSchedule.api.*;
 import org.matsim.pt.utils.CreatePseudoNetwork;
 
 import java.time.LocalDate;
+import java.util.HashSet;
 
 public class GtfsTest {
 
@@ -204,6 +205,96 @@ public class GtfsTest {
 
     }
 
+    @Test
+    public void testMergeToGtfsParentStation() {
+        // TODO: test transfer times. No existing test feed contains them.
+
+        Config config = ConfigUtils.createConfig();
+        config.transit().setUseTransit(true);
+        MutableScenario scenario = (MutableScenario) ScenarioUtils.createScenario(config);
+
+        GtfsConverter converter = GtfsConverter.newBuilder()
+                .setScenario(scenario)
+                .setTransform(new IdentityTransformation())
+                .setFeed(GTFSFeed.fromFile("test/input/sample-feed2.zip"))
+                .setDate(LocalDate.of(2020, 3, 16))
+                .setMergeStops(GtfsConverter.MergeGtfsStops.mergeToGtfsParentStation)
+                .build();
+
+        converter.convert();
+
+        Assertions.assertEquals(303, scenario.getTransitSchedule().getFacilities().size());
+        for (TransitStopFacility stop: scenario.getTransitSchedule().getFacilities().values()) {
+            // in this specific feed all stops have a parent station and all parent stations are called "Parent" with a trailing number
+            Assertions.assertEquals("Parent", stop.getId().toString().substring(0, 6));
+        }
+        TransitStopFacility stop30107parent = scenario.getTransitSchedule().getFacilities().get(Id.create("Parent30107", TransitStopFacility.class));
+        Assertions.assertNotNull(stop30107parent, "parent station at Hauptbahnhof missing");
+        Assertions.assertEquals(Id.create("Parent30107", TransitStopArea.class), stop30107parent.getStopAreaId(), "TransitStopArea missing at parent station");
+
+        // check gtfs feed without parent station
+        MutableScenario scenarioWithoutParentStations = (MutableScenario) ScenarioUtils.createScenario(config);
+        GtfsConverter gtfsWithoutParentStations = GtfsConverter.newBuilder()
+                .setScenario(scenarioWithoutParentStations)
+                .setTransform(new IdentityTransformation())
+                .setFeed(GTFSFeed.fromFile("test/input/sample-feed.zip"))
+                .setDate(LocalDate.of(2007, 1, 1))
+                .setMergeStops(GtfsConverter.MergeGtfsStops.mergeToGtfsParentStation)
+                .build();
+        gtfsWithoutParentStations.convert();
+        checkSchedule(scenarioWithoutParentStations, false);
+    }
+
+    @Test
+    public void testMergeToParentAndRouteTypes() {
+        // TODO: test transfer times. No existing test feed contains them.
+
+        Config config = ConfigUtils.createConfig();
+        config.transit().setUseTransit(true);
+        MutableScenario scenario = (MutableScenario) ScenarioUtils.createScenario(config);
+
+        GtfsConverter converter = GtfsConverter.newBuilder()
+                .setScenario(scenario)
+                .setTransform(new IdentityTransformation())
+                .setFeed(GTFSFeed.fromFile("test/input/sample-feed2.zip"))
+                .setDate(LocalDate.of(2020, 3, 16))
+                .setMergeStops(GtfsConverter.MergeGtfsStops.mergeToParentAndRouteTypes)
+                .build();
+
+        converter.convert();
+
+        Assertions.assertEquals(641, scenario.getTransitSchedule().getFacilities().size());
+        for (TransitStopFacility stop: scenario.getTransitSchedule().getFacilities().values()) {
+            // in this specific feed all stops have a parent station and all parent stations are called "Parent" with a trailing number
+            Assertions.assertEquals("Parent", stop.getId().toString().substring(0, 6));
+        }
+        // test Freiburg Hauptbahnhof has bus and tram separately and the generic parent station
+        TransitStopFacility stop30107tram = scenario.getTransitSchedule().getFacilities().get(Id.create("Parent30107_tram", TransitStopFacility.class));
+        Assertions.assertNotNull(stop30107tram, "tram stop at Hauptbahnhof missing");
+        Assertions.assertEquals(Id.create("Parent30107", TransitStopArea.class), stop30107tram.getStopAreaId(), "TransitStopArea missing at merged tram stop");
+        TransitStopFacility stop30107bus = scenario.getTransitSchedule().getFacilities().get(Id.create("Parent30107_bus", TransitStopFacility.class));
+        Assertions.assertNotNull(stop30107bus, "bus stop at Hauptbahnhof missing");
+        Assertions.assertEquals(Id.create("Parent30107", TransitStopArea.class), stop30107bus.getStopAreaId(), "TransitStopArea missing at merged bus stop");
+        TransitStopFacility stop30107parent = scenario.getTransitSchedule().getFacilities().get(Id.create("Parent30107", TransitStopFacility.class));
+        Assertions.assertNotNull(stop30107parent, "parent station at Hauptbahnhof missing");
+        Assertions.assertEquals(Id.create("Parent30107", TransitStopArea.class), stop30107parent.getStopAreaId(), "TransitStopArea missing at parent station");
+
+        // currently we keep all stops
+        Assertions.assertFalse(allStopsHaveService(scenario, true), "Found stops without service.");
+
+        // check gtfs feed without parent station
+        MutableScenario scenarioWithoutParentStations = (MutableScenario) ScenarioUtils.createScenario(config);
+        GtfsConverter gtfsWithoutParentStations = GtfsConverter.newBuilder()
+                .setScenario(scenarioWithoutParentStations)
+                .setTransform(new IdentityTransformation())
+                .setFeed(GTFSFeed.fromFile("test/input/sample-feed.zip"))
+                .setDate(LocalDate.of(2007, 1, 1))
+                .setMergeStops(GtfsConverter.MergeGtfsStops.mergeToParentAndRouteTypes)
+                .build();
+        gtfsWithoutParentStations.convert();
+        checkSchedule(scenarioWithoutParentStations, false);
+    }
+
     private void checkSchedule(MutableScenario scenario, boolean weekend) {
 
         TransitSchedule schedule = scenario.getTransitSchedule();
@@ -223,5 +314,29 @@ public class GtfsTest {
             Assertions.assertEquals(4, schedule.getTransitLines().size());
             Assertions.assertEquals(7, routes);
         }
+    }
+
+    private boolean allStopsHaveService(MutableScenario scenario, boolean ignoreParentStations) {
+        HashSet<Id<TransitStopFacility>> stopsWithService = new HashSet<>();
+        for (TransitLine line : scenario.getTransitSchedule().getTransitLines().values()) {
+            for (TransitRoute route : line.getRoutes().values()) {
+                for (TransitRouteStop routeStop : route.getStops()) {
+                    stopsWithService.add(routeStop.getStopFacility().getId());
+                }
+            }
+        }
+        if (ignoreParentStations) {
+            for (TransitStopFacility stop: scenario.getTransitSchedule().getFacilities().values()) {
+                if (!stopsWithService.contains(stop.getId())) {
+                    // check if stop is a parent station
+                    if( !stop.getStopAreaId().toString().equals(stop.getId().toString())) {
+                        return false;
+                    }
+                }
+            }
+        } else {
+            return stopsWithService.size() == scenario.getTransitSchedule().getFacilities().values().size();
+        }
+        return true;
     }
 }
