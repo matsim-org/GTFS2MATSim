@@ -295,6 +295,27 @@ public class GtfsTest {
         checkSchedule(scenarioWithoutParentStations, false);
     }
 
+    @Test
+    public void testKeepParentStationsAndStopsWithService() {
+
+        Config config = ConfigUtils.createConfig();
+        config.transit().setUseTransit(true);
+        MutableScenario scenario = (MutableScenario) ScenarioUtils.createScenario(config);
+
+        GtfsConverter converter = GtfsConverter.newBuilder()
+                .setScenario(scenario)
+                .setTransform(new IdentityTransformation())
+                .setFeed(GTFSFeed.fromFile("test/input/sample-feed2.zip"))
+                .setDate(LocalDate.of(2020, 3, 16))
+                .setHandleStopsWithoutService(GtfsConverter.HandleStopsWithoutService.keepParentStationsAndStopsWithService)
+                .build();
+
+        converter.convert();
+
+        Assertions.assertNull(scenario.getTransitSchedule().getFacilities().get(Id.create("Parent30703", TransitStopFacility.class)),
+                "Station Parent30703 Freiburg, Blumenstraße has no service but was not deleted.");
+    }
+
     private void checkSchedule(MutableScenario scenario, boolean weekend) {
 
         TransitSchedule schedule = scenario.getTransitSchedule();

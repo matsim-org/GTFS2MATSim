@@ -37,6 +37,7 @@ public class GtfsConverter {
     private final Predicate<Integer> includeRouteType;
     private final boolean useExtendedRouteTypes;
     private final MergeGtfsStops mergeStops;
+    private final HandleStopsWithoutService handleStopsWithoutService;
     private final boolean includeMinimalTransferTimes;
     private final String prefix;
     /**
@@ -59,6 +60,7 @@ public class GtfsConverter {
         this.includeAgency = builder.includeAgency;
         this.includeRouteType = builder.includeRouteType;
         this.mergeStops = builder.mergeStops;
+        this.handleStopsWithoutService = builder.handleStopsWithoutService;
         this.includeMinimalTransferTimes = builder.includeMinimalTransferTimes;
         this.prefix = builder.prefix;
         this.endDate = builder.endDate;
@@ -179,6 +181,10 @@ public class GtfsConverter {
                 log.warn("There are no converted trips. You might need to change the date for better results.");
             }
         } while (!date.isEqual(this.endDate.plusDays(1)));
+
+        if (handleStopsWithoutService.equals(HandleStopsWithoutService.keepParentStationsAndStopsWithService)) {
+            deleteStopsWithoutService();
+        }
 
         log.info("Conversion successful");
     }
@@ -449,7 +455,25 @@ public class GtfsConverter {
         return Id.create(prefix + asciiShortName + "---" + route.route_id, TransitLine.class);
     }
 
+    private void deleteStopsWithoutService() {
+        Set<Id<TransitStopFacility>> stopsToDelete = ts.getFacilities().values().stream().map(s -> s.getId()).collect(Collectors.toSet());
+        for (TransitLine line : ts.getTransitLines().values()) {
+            for (TransitRoute route : line.getRoutes().values()) {
+                for (TransitRouteStop routeStop : route.getStops()) {
+                    stopsToDelete.remove(routeStop.getStopFacility().getId());
+                    // keep corresponding parent station
+                    stopsToDelete.remove(Id.create(routeStop.getStopFacility().getStopAreaId().toString(), TransitStopFacility.class));
+                }
+            }
+        }
+        for (Id<TransitStopFacility> stop : stopsToDelete) {
+            ts.removeStopFacility(ts.getFacilities().get(stop));
+        }
+    }
+
     public enum MergeGtfsStops {doNotMerge, mergeStopsAtSameCoord, mergeToGtfsParentStation, mergeToParentAndRouteTypes}
+
+    public enum HandleStopsWithoutService {keepAll, keepParentStationsAndStopsWithService}
 
     public static final class Builder {
 
@@ -458,6 +482,7 @@ public class GtfsConverter {
         private LocalDate date = LocalDate.now();
         private boolean useExtendedRouteTypes = false;
         private MergeGtfsStops mergeStops = MergeGtfsStops.doNotMerge;
+        public HandleStopsWithoutService handleStopsWithoutService = HandleStopsWithoutService.keepAll;
         private boolean includeMinimalTransferTimes = true;
         private Scenario scenario;
         private Predicate<Trip> includeTrip = (t) -> true;
@@ -593,6 +618,11 @@ public class GtfsConverter {
          */
         public Builder setMergeStops(MergeGtfsStops mergeStops) {
             this.mergeStops = mergeStops;
+            return this;
+        }
+
+        public Builder setHandleStopsWithoutService(HandleStopsWithoutService handleStopsWithoutService) {
+            this.handleStopsWithoutService = handleStopsWithoutService;
             return this;
         }
 
