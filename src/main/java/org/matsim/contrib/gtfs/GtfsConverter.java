@@ -253,7 +253,10 @@ public class GtfsConverter {
             if (!ts.getFacilities().containsKey(t.getId()))
                 ts.addStopFacility(t);
 
-            if (stop.parent_station != null && !stop.parent_station.isEmpty()) {
+            if (stop.location_type == 1) {
+                // this is a station and potential parent station for stops (= tracks inside the station)
+                t.setStopAreaId(Id.create(stop.stop_id, TransitStopArea.class));
+            } else if (stop.parent_station != null && !stop.parent_station.isEmpty()) {
                 t.setStopAreaId(Id.create(stop.parent_station, TransitStopArea.class));
             }
 
