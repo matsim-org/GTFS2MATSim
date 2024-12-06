@@ -31,7 +31,7 @@ public enum RouteType {
 	REGIONAL_RAIL_SERVICE(106, "Regional Rail Service", RAIL),
 	TOURIST_RAILWAY_SERVICE(107, "Tourist Railway Service", RAIL),
 	RAIL_SHUTTLE_WITHIN_COMPLEX(108, "Rail Shuttle (Within Complex)", RAIL),
-	SUBURBAN_RAILWAY(109, "Suburban Railway", RAIL),
+	SUBURBAN_RAILWAY(109, "Suburban Railway"), // typically S-Bahn or similar with much more frequent service than other rail. Keep distinct.
 	REPLACEMENT_RAIL_SERVICE(110, "Replacement Rail Service", RAIL),
 	SPECIAL_RAIL_SERVICE(111, "Special Rail Service", RAIL),
 	LORRY_TRANSPORT_RAIL_SERVICE(112, "Lorry Transport Rail Service", RAIL),
