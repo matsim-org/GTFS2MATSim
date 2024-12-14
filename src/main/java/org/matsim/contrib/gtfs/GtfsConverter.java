@@ -282,7 +282,7 @@ public class GtfsConverter {
             for (StopTime stopTime : feed.getOrderedStopTimesForTrip(trip.trip_id)) {
 
                 // Get the simple route type of the station
-                String type = RouteType.getRouteType(route.route_type).getSimpleTypeName();
+                String type = RouteType.getRouteType(route.route_type).getSimpleTypeName().replaceAll(" ", "");
 
                 // Need to use sorted set
                 routeTypes.computeIfAbsent(stopTime.stop_id, k -> new TreeSet<>()).add(type);
