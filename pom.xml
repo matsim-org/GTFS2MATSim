@@ -6,12 +6,13 @@
 	<version>15.0-SNAPSHOT</version>
 
 	<properties>
-		<matsim.version>2024.0</matsim.version>
+		<matsim.version>2025.0-2025w04</matsim.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-		<maven.compiler.source>17</maven.compiler.source>
-		<maven.compiler.release>17</maven.compiler.release>
-		<junit.version>5.10.2</junit.version>
+		<maven.compiler.release>21</maven.compiler.release>
+		<junit.version>5.11.4</junit.version>
+		<log4j.version>2.24.0</log4j.version>
+		<fastutil.version>8.5.11</fastutil.version>
 	</properties>
 
 	<repositories>
@@ -71,14 +72,18 @@
 			<version>7.1.0</version>
 		</dependency>
 		<dependency>
-			<groupId>org.junit.jupiter</groupId>
-			<artifactId>junit-jupiter-engine</artifactId>
-			<version>${junit.version}</version>
-			<scope>test</scope>
+			<groupId>it.unimi.dsi</groupId>
+			<artifactId>fastutil-core</artifactId>
+			<version>${fastutil.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-api</artifactId>
+			<version>${log4j.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
-			<artifactId>junit-jupiter</artifactId>
+			<artifactId>junit-jupiter-api</artifactId>
 			<version>${junit.version}</version>
 			<scope>test</scope>
 		</dependency>
@@ -86,7 +91,7 @@
 		<dependency>
 			<groupId>com.conveyal</groupId>
 			<artifactId>jackson2-geojson</artifactId>
-			<version>0.8</version>
+			<version>0.9</version>
 		</dependency>
 
 	</dependencies>
@@ -96,8 +101,18 @@
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>3.5.2</version>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-failsafe-plugin</artifactId>
+				<version>3.5.2</version>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.10.1</version>
+				<version>3.13.0</version>
 			</plugin>
 		</plugins>
 
