@@ -88,12 +88,6 @@
 			<scope>test</scope>
 		</dependency>
 
-		<dependency>
-			<groupId>com.conveyal</groupId>
-			<artifactId>jackson2-geojson</artifactId>
-			<version>0.9</version>
-		</dependency>
-
 	</dependencies>
 
 	<build>
