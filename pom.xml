@@ -89,9 +89,9 @@
 		</dependency>
 
 		<dependency>
-			<groupId>com.conveyal</groupId>
-			<artifactId>jackson2-geojson</artifactId>
-			<version>0.9</version>
+			<groupId>org.mapdb</groupId>
+			<artifactId>mapdb</artifactId>
+			<version>1.0.8</version>
 		</dependency>
 
 	</dependencies>
