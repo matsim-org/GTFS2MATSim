@@ -1,0 +1,21 @@
+name: Maven Test
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v5
+    - name: Set up JDK
+      uses: actions/setup-java@v5
+      with:
+        java-version: '21'
+    - name: Build with Maven
+      run: mvn verify -B -Dmatsim.preferLocalDtds=true
